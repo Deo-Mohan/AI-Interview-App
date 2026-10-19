@@ -127,6 +127,9 @@ export class UserCredentialManager {
     // Attempt persistent write via Supabase
     try {
       const client = SupabaseService.getServiceClient();
+      if (!client) {
+        throw new Error('Supabase client unavailable');
+      }
       const { error } = await client
         .from('user_ai_credentials')
         .upsert(record, { onConflict: 'user_id' });
@@ -174,25 +177,27 @@ export class UserCredentialManager {
     // 2. Check database for encrypted persistent credential
     try {
       const client = SupabaseService.getServiceClient();
-      const { data, error } = await client
-        .from('user_ai_credentials')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      if (client) {
+        const { data, error } = await client
+          .from('user_ai_credentials')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
 
-      if (!error && data) {
-        const decryptedKey = EncryptionService.decrypt({
-          ciphertext: data.encrypted_api_key,
-          iv: data.encryption_iv,
-          tag: data.encryption_tag
-        });
+        if (!error && data) {
+          const decryptedKey = EncryptionService.decrypt({
+            ciphertext: data.encrypted_api_key,
+            iv: data.encryption_iv,
+            tag: data.encryption_tag
+          });
 
-        return {
-          provider: data.provider,
-          apiKey: decryptedKey,
-          model: data.model,
-          customEndpoint: data.custom_endpoint
-        };
+          return {
+            provider: data.provider,
+            apiKey: decryptedKey,
+            model: data.model,
+            customEndpoint: data.custom_endpoint
+          };
+        }
       }
     } catch (e) {
       // Database unavailable, try local encrypted store
@@ -241,24 +246,26 @@ export class UserCredentialManager {
     // 2. Persistent store
     try {
       const client = SupabaseService.getServiceClient();
-      const { data, error } = await client
-        .from('user_ai_credentials')
-        .select('provider, model, custom_endpoint, key_last_four, persistence_type, last_tested_at, last_status, updated_at')
-        .eq('user_id', userId)
-        .single();
+      if (client) {
+        const { data, error } = await client
+          .from('user_ai_credentials')
+          .select('provider, model, custom_endpoint, key_last_four, persistence_type, last_tested_at, last_status, updated_at')
+          .eq('user_id', userId)
+          .single();
 
-      if (!error && data) {
-        return {
-          provider: data.provider,
-          model: data.model,
-          customEndpoint: data.custom_endpoint,
-          keyLastFour: data.key_last_four,
-          persistenceType: data.persistence_type,
-          lastTestedAt: data.last_tested_at,
-          lastStatus: data.last_status,
-          updatedAt: data.updated_at,
-          isConfigured: true
-        };
+        if (!error && data) {
+          return {
+            provider: data.provider,
+            model: data.model,
+            customEndpoint: data.custom_endpoint,
+            keyLastFour: data.key_last_four,
+            persistenceType: data.persistence_type,
+            lastTestedAt: data.last_tested_at,
+            lastStatus: data.last_status,
+            updatedAt: data.updated_at,
+            isConfigured: true
+          };
+        }
       }
     } catch (e) {}
 
@@ -290,10 +297,12 @@ export class UserCredentialManager {
 
     try {
       const client = SupabaseService.getServiceClient();
-      await client
-        .from('user_ai_credentials')
-        .delete()
-        .eq('user_id', userId);
+      if (client) {
+        await client
+          .from('user_ai_credentials')
+          .delete()
+          .eq('user_id', userId);
+      }
     } catch (e) {}
 
     SecretRedactor.log('INFO', `User AI credentials deleted for user: ${userId}`, { userId });

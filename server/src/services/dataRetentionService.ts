@@ -33,6 +33,9 @@ export class DataRetentionService {
 
     try {
       const client = SupabaseService.getServiceClient();
+      if (!client) {
+        throw new Error('Supabase client unavailable');
+      }
 
       // 1. Delete user resumes
       const { data: resumes } = await client
