@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { Bot, AlertCircle, Eye, EyeOff, Sparkles, RefreshCw, ExternalLink } from 'lucide-react';
+import { Bot, AlertCircle, Eye, EyeOff, Sparkles, RefreshCw, ExternalLink, User } from 'lucide-react';
 import { ConversationState } from '../types/engine';
 
 interface Avatar3DCanvasProps {
   state: ConversationState;
+  mentorGender?: 'female' | 'male';
+  modelUrl?: string;
   className?: string;
   onFpsReport?: (fps: number) => void;
 }
@@ -19,15 +21,18 @@ interface TargetMesh {
 
 /**
  * High-Fidelity 3D Humanoid Mentor Avatar Canvas:
- * - Powered by Three.js GLTFLoader loading the VTubeMe Sky GLB model (CC BY 4.0)
- * - Cinematic 3-point lighting with ACES Filmic tone mapping
- * - Full skeletal animations across idle, listening, thinking, and speaking states
- * - Real speech-driven facial blendshapes & lip sync using ARKit visemes (jawOpen, aa, E, oh, ih)
+ * - Supports dual Realistic Avatars (Female 'Sophia' & Male 'Marcus') via Meshopt GLB
+ * - Natural resting posture with anatomical bone kinematics (no awkward arm crossing)
+ * - Eye-level executive portrait camera framing (mid-chest to head, perfectly centered)
+ * - Cinematic 3-point studio lighting with ACES Filmic tone mapping
+ * - Real speech-driven facial blendshapes & lip sync using ARKit & Oculus visemes (jawOpen, aa, E, O, PP, TH)
  * - Periodic natural blinking and expressive eye/brow micro-gestures
  * - Mobile performance optimizations, WebGL cleanup, and 2D lightweight fallback
  */
 export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
   state,
+  mentorGender = 'female',
+  modelUrl,
   className = '',
   onFpsReport
 }) => {
@@ -38,7 +43,12 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
   const [is2DFallbackEnabled, setIs2DFallbackEnabled] = useState<boolean>(false);
 
-  // Keep a reference to current state so WebGL loop updates without re-loading GLB model
+  // Resolved 3D Model URL based on gender or explicit prop
+  const resolvedModelUrl = modelUrl || (mentorGender === 'male' 
+    ? '/models/realistic-male.glb' 
+    : '/models/realistic-female.glb');
+
+  // Keep a reference to current state so WebGL loop updates without reloading model
   const stateRef = useRef<ConversationState>(state);
   useEffect(() => {
     stateRef.current = state;
@@ -64,7 +74,7 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
     let camera: THREE.PerspectiveCamera | null = null;
     let clock = new THREE.Clock();
 
-    // Model nodes references
+    // Model skeletal nodes references
     let headBone: THREE.Object3D | null = null;
     let neckBone: THREE.Object3D | null = null;
     let spineBone: THREE.Object3D | null = null;
@@ -76,10 +86,9 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
     let rightForeArm: THREE.Object3D | null = null;
     let leftHand: THREE.Object3D | null = null;
     let rightHand: THREE.Object3D | null = null;
-    let fingerBones: THREE.Object3D[] = [];
     let morphMeshes: TargetMesh[] = [];
 
-    // Helper to safely set morph target weight across all meshes (supports raw and viseme_ prefixes)
+    // Helper to safely set morph target weight across all meshes
     const setMorphWeight = (name: string, weight: number) => {
       const clamped = Math.max(0, Math.min(1, weight));
       for (const item of morphMeshes) {
@@ -93,7 +102,7 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
       }
     };
 
-    // Helper to apply relative rotation to a bone preserving bind pose
+    // Helper to apply relative rotation preserving bind pose
     const applyBoneDelta = (bone: THREE.Object3D | null, dx: number, dy: number, dz: number) => {
       if (!bone || !bone.userData.baseQuaternion) return;
       const qDelta = new THREE.Quaternion().setFromEuler(new THREE.Euler(dx, dy, dz));
@@ -101,23 +110,25 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
     };
 
     try {
+      setIsLoading(true);
+      setLoadingProgress(0);
+
       // 1. Scene setup
       scene = new THREE.Scene();
 
-      // 2. Camera setup - perfectly framed portrait showing head, shoulders, chest, and posed hands
+      // 2. Camera setup - Professional eye-level portrait framing (mid-chest to head, centered)
       const width = containerRef.current.clientWidth || 400;
       const height = containerRef.current.clientHeight || 400;
       const aspect = width / height;
       
-      // Responsive FOV & distance so head, face, shoulders, chest, and hands are all beautifully in frame
-      const initialFov = aspect < 1.0 ? 44 : aspect < 1.4 ? 40 : 36;
-      const initialZ = aspect < 1.0 ? 1.55 : aspect < 1.4 ? 1.48 : 1.42;
+      const initialFov = aspect < 1.0 ? 38 : aspect < 1.4 ? 34 : 30;
+      const initialZ = aspect < 1.0 ? 1.30 : aspect < 1.4 ? 1.22 : 1.15;
       
       camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 50);
-      camera.position.set(0, 1.44, initialZ);
-      camera.lookAt(0, 1.39, 0);
+      camera.position.set(0, 1.48, initialZ);
+      camera.lookAt(0, 1.45, 0);
 
-      // 3. Renderer with antialiasing, high color accuracy & tone mapping
+      // 3. Renderer with antialiasing & ACES Filmic tone mapping
       renderer = new THREE.WebGLRenderer({
         antialias: true,
         alpha: true,
@@ -126,38 +137,34 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
       renderer.setSize(width, height);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.1;
+      renderer.toneMappingExposure = 1.05;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       containerRef.current.appendChild(renderer.domElement);
 
       // 4. Cinematic Studio 3-Point Lighting
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
       scene.add(ambientLight);
 
-      // Key Light: Warm soft front-right sunlight
-      const keyLight = new THREE.DirectionalLight(0xfff7ed, 1.8);
-      keyLight.position.set(1.5, 2.5, 2.0);
+      // Key Light: Warm soft front-right light
+      const keyLight = new THREE.DirectionalLight(0xfffbf0, 1.9);
+      keyLight.position.set(1.4, 2.4, 2.0);
       scene.add(keyLight);
 
-      // Fill Light: Soft cool blue/lavender fill
-      const fillLight = new THREE.DirectionalLight(0xe0e7ff, 1.1);
-      fillLight.position.set(-1.5, 1.5, 1.5);
+      // Fill Light: Soft cool blue fill
+      const fillLight = new THREE.DirectionalLight(0xe0e7ff, 1.2);
+      fillLight.position.set(-1.4, 1.6, 1.6);
       scene.add(fillLight);
 
-      // Rim / Accent Light: Vibrant violet/cyan hair rim for depth
-      const rimLight = new THREE.DirectionalLight(0xc084fc, 2.4);
-      rimLight.position.set(0, 2.8, -2.0);
+      // Rim / Accent Light: Crisp hair rim for dimensional depth
+      const rimLight = new THREE.DirectionalLight(0xc4b5fd, 2.2);
+      rimLight.position.set(0, 2.6, -1.8);
       scene.add(rimLight);
 
-      // Hand Soft Uplight: subtle bounce to illuminate resting hands clearly
-      const handBounceLight = new THREE.DirectionalLight(0xffffff, 0.6);
-      handBounceLight.position.set(0, 0.5, 1.5);
-      scene.add(handBounceLight);
-
+      // 5. Load GLB Realistic Avatar Model with Meshopt Compression
       const loader = new GLTFLoader();
       loader.setMeshoptDecoder(MeshoptDecoder);
       loader.load(
-        '/models/english-coach.glb',
+        resolvedModelUrl,
         (gltf) => {
           if (!scene) return;
           const model = gltf.scene;
@@ -171,28 +178,17 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
               child.userData.baseQuaternion = child.quaternion.clone();
 
               const name = (child.name || '').toLowerCase();
-              if (name === 'head' || name.includes('head')) headBone = child;
-              if (name === 'neck' || name.includes('neck')) neckBone = child;
-              if (name === 'spine' || name.includes('spine')) spineBone = child;
-              if (name === 'leftshoulder' || name.includes('l_clavicle')) leftShoulder = child;
-              if (name === 'rightshoulder' || name.includes('r_clavicle')) rightShoulder = child;
-              if (name === 'leftarm' || name.includes('l_upperarm')) leftArm = child;
-              if (name === 'rightarm' || name.includes('r_upperarm')) rightArm = child;
-              if (name === 'leftforearm' || name.includes('l_forearm')) leftForeArm = child;
-              if (name === 'rightforearm' || name.includes('r_forearm')) rightForeArm = child;
-              if (name === 'lefthand' || name.includes('l_hand')) leftHand = child;
-              if (name === 'righthand' || name.includes('r_hand')) rightHand = child;
-
-              // Finger knuckles for natural curl
-              if (
-                name.includes('index1') || 
-                name.includes('middle1') || 
-                name.includes('ring1') || 
-                name.includes('pinky1') ||
-                name.includes('thumb2')
-              ) {
-                fingerBones.push(child);
-              }
+              if (name === 'head' || name.endsWith('head')) headBone = child;
+              if (name === 'neck' || name.endsWith('neck') || name.includes('bip01_neck')) neckBone = child;
+              if (name === 'spine' || name.includes('spine') || name.includes('bip01_spine')) spineBone = child;
+              if (name.includes('clavicle') || name.includes('leftshoulder')) leftShoulder = child;
+              if (name.includes('clavicle') || name.includes('rightshoulder')) rightShoulder = child;
+              if (name.includes('upperarm') && (name.includes('l_') || name.includes('left'))) leftArm = child;
+              if (name.includes('upperarm') && (name.includes('r_') || name.includes('right'))) rightArm = child;
+              if (name.includes('forearm') && (name.includes('l_') || name.includes('left'))) leftForeArm = child;
+              if (name.includes('forearm') && (name.includes('r_') || name.includes('right'))) rightForeArm = child;
+              if (name.includes('hand') && (name.includes('l_') || name.includes('left'))) leftHand = child;
+              if (name.includes('hand') && (name.includes('r_') || name.includes('right'))) rightHand = child;
             }
 
             if (child.isMesh && child.morphTargetDictionary && child.morphTargetInfluences) {
@@ -202,31 +198,22 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
                 influences: child.morphTargetInfluences
               });
 
-              // Ensure high quality material rendering
+              // Materials fine-tuning for natural skin & fabric response
               if (child.material) {
                 if (Array.isArray(child.material)) {
                   child.material.forEach((m: any) => {
-                    m.roughness = Math.max(m.roughness || 0.4, 0.4);
+                    m.roughness = Math.max(m.roughness || 0.45, 0.45);
                   });
                 } else {
-                  child.material.roughness = Math.max(child.material.roughness || 0.4, 0.4);
+                  child.material.roughness = Math.max(child.material.roughness || 0.45, 0.45);
                 }
               }
             }
           });
 
-          // Soft natural resting finger curl (avoids stiff flat fingers)
-          fingerBones.forEach((finger) => {
-            const name = (finger.name || '').toLowerCase();
-            const isThumb = name.includes('thumb');
-            const curl = isThumb ? 0.22 : 0.34;
-            const qCurl = new THREE.Quaternion().setFromEuler(new THREE.Euler(curl, 0, 0));
-            finger.quaternion.copy(finger.userData.baseQuaternion).multiply(qCurl);
-          });
-
-          // Initial smile & warm expression
-          setMorphWeight('mouthSmileLeft', 0.15);
-          setMorphWeight('mouthSmileRight', 0.15);
+          // Default warm friendly smile
+          setMorphWeight('mouthSmileLeft', 0.16);
+          setMorphWeight('mouthSmileRight', 0.16);
 
           setIsLoading(false);
         },
@@ -252,22 +239,22 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
         camera.aspect = newAspect;
 
         if (newAspect < 1.0) {
-          camera.fov = 44;
-          camera.position.set(0, 1.44, 1.55);
+          camera.fov = 38;
+          camera.position.set(0, 1.48, 1.30);
         } else if (newAspect < 1.4) {
-          camera.fov = 40;
-          camera.position.set(0, 1.44, 1.48);
+          camera.fov = 34;
+          camera.position.set(0, 1.48, 1.22);
         } else {
-          camera.fov = 36;
-          camera.position.set(0, 1.44, 1.42);
+          camera.fov = 30;
+          camera.position.set(0, 1.48, 1.15);
         }
-        camera.lookAt(0, 1.39, 0);
+        camera.lookAt(0, 1.45, 0);
         camera.updateProjectionMatrix();
         renderer.setSize(newW, newH);
       };
       window.addEventListener('resize', handleResize);
 
-      // 7. Animation Loop with Kinematics across Conversation States
+      // 7. Animation Loop with Organic Kinematics across Conversation States
       let blinkTimer = 0;
       let nextBlinkDuration = 3.6;
       let isBlinking = false;
@@ -289,7 +276,7 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
         }
 
         if (isBlinking) {
-          blinkProgress += delta * 6.5; // Quick natural blink (~150ms)
+          blinkProgress += delta * 6.8; // Quick natural blink (~140ms)
           const blinkWeight = Math.sin(Math.min(blinkProgress, Math.PI));
           setMorphWeight('eyeBlinkLeft', blinkWeight);
           setMorphWeight('eyeBlinkRight', blinkWeight);
@@ -300,118 +287,97 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
           }
         }
 
-        // Spine Organic Breathing
+        // Spine Organic Breathing (Gentle chest expansion)
+        const breathe = Math.sin(t * 1.5) * 0.012;
         if (spineBone) {
-          spineBone.rotation.x = Math.sin(t * 1.5) * 0.012;
+          spineBone.rotation.x = breathe;
         }
 
-        // Shoulder relaxation
-        if (leftShoulder) leftShoulder.rotation.z = -0.04;
-        if (rightShoulder) rightShoulder.rotation.z = 0.04;
+        // Natural resting arms: Bip01 base bind pose is already resting downwards.
+        // We only apply micro breathing sways to upper arms — NEVER extreme 1.25 X-deltas.
+        applyBoneDelta(leftArm, breathe * 0.15, 0, 0);
+        applyBoneDelta(rightArm, breathe * 0.15, 0, 0);
+        applyBoneDelta(leftForeArm, 0, 0, 0);
+        applyBoneDelta(rightForeArm, 0, 0, 0);
+        applyBoneDelta(leftHand, 0, 0, 0);
+        applyBoneDelta(rightHand, 0, 0, 0);
 
-        // Dynamic Arm and Hand Posing & Conversational Gestures
         if (currentState === 'speaking') {
-          // Subtle natural speaking cadence with organic conversational hand micro-sways
-          const cadence = Math.sin(t * 2.8) * 0.05;
-
-          applyBoneDelta(leftArm, 1.22 + cadence * 0.3, -0.02, 0.04);
-          applyBoneDelta(leftForeArm, 0.45 + cadence * 0.4, 0.0, 0.18);
-          applyBoneDelta(leftHand, 0.12 + cadence * 0.2, 0.0, 0.08);
-
-          applyBoneDelta(rightArm, 1.20 - cadence * 0.4, 0.02, -0.06);
-          applyBoneDelta(rightForeArm, 0.52 - cadence * 0.45, 0.0, -0.22);
-          applyBoneDelta(rightHand, 0.15 - cadence * 0.3, 0.0, -0.10);
-
-          // Head gestures: natural subtle nods & conversational emphasis
+          // Subtle natural speaking cadence with organic head emphasis
           if (headBone) {
-            headBone.rotation.x = 0.02 + Math.sin(t * 3.8) * 0.025;
-            headBone.rotation.y = Math.sin(t * 1.6) * 0.03;
-            headBone.rotation.z = Math.cos(t * 1.8) * 0.015;
+            headBone.rotation.x = 0.02 + Math.sin(t * 3.4) * 0.028;
+            headBone.rotation.y = Math.sin(t * 1.6) * 0.025;
+            headBone.rotation.z = Math.cos(t * 1.8) * 0.012;
           }
 
-          // Speech-driven viseme & mouth opening
-          const speechCycle = Math.sin(t * 14);
-          const jawOpenWeight = Math.max(0, 0.2 + 0.65 * speechCycle);
-          const vowelA = Math.max(0, Math.sin(t * 11) * 0.7);
-          const vowelO = Math.max(0, Math.sin(t * 7 + 1.2) * 0.5);
-          const vowelE = Math.max(0, Math.sin(t * 13 + 0.8) * 0.6);
+          // Dynamic speech-driven visemes & mouth opening
+          const speechCycle = Math.sin(t * 13);
+          const jawOpenWeight = Math.max(0, 0.15 + 0.55 * speechCycle * Math.sin(t * 7 + 0.4));
+          const vowelA = Math.max(0, Math.sin(t * 11) * 0.6);
+          const vowelO = Math.max(0, Math.sin(t * 8 + 1.2) * 0.5);
+          const vowelE = Math.max(0, Math.sin(t * 14 + 0.8) * 0.55);
+          const visemePP = Math.max(0, Math.sin(t * 6.5) > 0.82 ? 0.45 : 0);
 
           setMorphWeight('jawOpen', jawOpenWeight);
-          setMorphWeight('aa', vowelA);
-          setMorphWeight('oh', vowelO);
-          setMorphWeight('E', vowelE);
-          setMorphWeight('browInnerUp', 0.15 + Math.sin(t * 2) * 0.1);
-          setMorphWeight('mouthSmileLeft', 0.2);
-          setMorphWeight('mouthSmileRight', 0.2);
+          setMorphWeight('viseme_aa', vowelA);
+          setMorphWeight('viseme_O', vowelO);
+          setMorphWeight('viseme_E', vowelE);
+          setMorphWeight('viseme_PP', visemePP);
+          setMorphWeight('viseme_TH', Math.max(0, Math.sin(t * 9 + 0.5) * 0.35));
+
+          setMorphWeight('browInnerUp', 0.14 + Math.sin(t * 2) * 0.08);
+          setMorphWeight('mouthSmileLeft', 0.18);
+          setMorphWeight('mouthSmileRight', 0.18);
         } else if (currentState === 'listening') {
-          // Attentive listening posture: arms resting calmly down, slight attentive head angle
-          applyBoneDelta(leftArm, 1.24, -0.02, 0.04);
-          applyBoneDelta(leftForeArm, 0.40, 0.0, 0.15);
-          applyBoneDelta(leftHand, 0.10, 0.0, 0.08);
-
-          applyBoneDelta(rightArm, 1.24, 0.02, -0.04);
-          applyBoneDelta(rightForeArm, 0.40, 0.0, -0.15);
-          applyBoneDelta(rightHand, 0.10, 0.0, -0.08);
-
+          // Attentive listening posture: slight head nod and attentive head tilt
           if (headBone) {
-            headBone.rotation.x = 0.05 + Math.sin(t * 1.2) * 0.01;
-            headBone.rotation.y = Math.sin(t * 0.8) * 0.02;
+            headBone.rotation.x = 0.04 + Math.sin(t * 1.2) * 0.012;
+            headBone.rotation.y = Math.sin(t * 0.8) * 0.018;
             headBone.rotation.z = 0.035; // Slight attentive head tilt
           }
 
           setMorphWeight('jawOpen', 0);
-          setMorphWeight('aa', 0);
-          setMorphWeight('oh', 0);
-          setMorphWeight('E', 0);
+          setMorphWeight('viseme_aa', 0);
+          setMorphWeight('viseme_O', 0);
+          setMorphWeight('viseme_E', 0);
+          setMorphWeight('viseme_PP', 0);
+          setMorphWeight('viseme_TH', 0);
           setMorphWeight('browInnerUp', 0.18);
           setMorphWeight('mouthSmileLeft', 0.18);
           setMorphWeight('mouthSmileRight', 0.18);
         } else if (currentState === 'processing') {
-          // Contemplative posture: right hand resting near lower ribcage/chest
-          applyBoneDelta(leftArm, 1.26, -0.02, 0.02);
-          applyBoneDelta(leftForeArm, 0.32, 0.0, 0.10);
-          applyBoneDelta(leftHand, 0.08, 0.0, 0.06);
-
-          applyBoneDelta(rightArm, 1.15, 0.04, -0.12);
-          applyBoneDelta(rightForeArm, 0.65, 0.0, -0.35);
-          applyBoneDelta(rightHand, 0.20, 0.0, -0.12);
-
+          // Contemplative posture: thoughtful slight head angle and raised inner brow
           if (headBone) {
-            headBone.rotation.x = -0.04 + Math.sin(t * 0.7) * 0.01;
-            headBone.rotation.y = 0.06;
+            headBone.rotation.x = -0.03 + Math.sin(t * 0.8) * 0.01;
+            headBone.rotation.y = 0.05;
             headBone.rotation.z = -0.02;
           }
 
-          setMorphWeight('jawOpen', 0.05);
-          setMorphWeight('aa', 0);
-          setMorphWeight('browInnerUp', 0.32);
-          setMorphWeight('eyeLookUpLeft', 0.22);
-          setMorphWeight('eyeLookUpRight', 0.22);
-          setMorphWeight('mouthSmileLeft', 0.08);
-          setMorphWeight('mouthSmileRight', 0.08);
+          setMorphWeight('jawOpen', 0.04);
+          setMorphWeight('viseme_aa', 0);
+          setMorphWeight('viseme_O', 0);
+          setMorphWeight('viseme_E', 0);
+          setMorphWeight('viseme_PP', 0);
+          setMorphWeight('browInnerUp', 0.30);
+          setMorphWeight('eyeLookUpLeft', 0.20);
+          setMorphWeight('eyeLookUpRight', 0.20);
+          setMorphWeight('mouthSmileLeft', 0.10);
+          setMorphWeight('mouthSmileRight', 0.10);
         } else {
-          // Idle posture: arms hanging naturally along torso with relaxed elbows and hands at sides/lap
-          const breathe = Math.sin(t * 1.5) * 0.012;
-
-          applyBoneDelta(leftArm, 1.25 + breathe, -0.02, 0.02);
-          applyBoneDelta(leftForeArm, 0.35 + breathe * 0.5, 0.0, 0.12);
-          applyBoneDelta(leftHand, 0.08, 0.0, 0.06);
-
-          applyBoneDelta(rightArm, 1.25 + breathe, 0.02, -0.02);
-          applyBoneDelta(rightForeArm, 0.35 + breathe * 0.5, 0.0, -0.12);
-          applyBoneDelta(rightHand, 0.08, 0.0, -0.06);
-
+          // Idle posture: calm natural resting state with gentle head micro-drifts
           if (headBone) {
-            headBone.rotation.x = Math.sin(t * 0.9) * 0.012;
-            headBone.rotation.y = Math.sin(t * 0.6) * 0.015;
-            headBone.rotation.z = Math.sin(t * 0.5) * 0.008;
+            headBone.rotation.x = Math.sin(t * 0.9) * 0.01;
+            headBone.rotation.y = Math.sin(t * 0.6) * 0.012;
+            headBone.rotation.z = Math.sin(t * 0.5) * 0.006;
           }
 
           setMorphWeight('jawOpen', 0);
-          setMorphWeight('aa', 0);
-          setMorphWeight('oh', 0);
-          setMorphWeight('E', 0);
-          setMorphWeight('browInnerUp', 0.05);
+          setMorphWeight('viseme_aa', 0);
+          setMorphWeight('viseme_O', 0);
+          setMorphWeight('viseme_E', 0);
+          setMorphWeight('viseme_PP', 0);
+          setMorphWeight('viseme_TH', 0);
+          setMorphWeight('browInnerUp', 0.06);
           setMorphWeight('eyeLookUpLeft', 0);
           setMorphWeight('eyeLookUpRight', 0);
           setMorphWeight('mouthSmileLeft', 0.16);
@@ -455,20 +421,24 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
       setHasWebGlError(true);
       setIsLoading(false);
     }
-  }, [is2DFallbackEnabled, prefersReducedMotion]);
+  }, [is2DFallbackEnabled, prefersReducedMotion, resolvedModelUrl]);
 
   // Render 2D Lightweight Fallback
   if (is2DFallbackEnabled || prefersReducedMotion || hasWebGlError) {
+    const isMale = mentorGender === 'male';
+    const mentorName = isMale ? 'Marcus' : 'Sophia';
+    const accentColor = isMale ? 'border-blue-400 bg-blue-500/20' : 'border-violet-400 bg-violet-500/20';
+
     return (
       <div className={`relative w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950 rounded-2xl text-white p-6 ${className}`}>
         <div className="relative mb-4">
           <div className={`size-32 rounded-full border-4 flex items-center justify-center transition-all ${
-            state === 'speaking' ? 'border-blue-400 bg-blue-500/20 scale-105 shadow-[0_0_24px_rgba(96,165,250,0.4)]' :
+            state === 'speaking' ? `${accentColor} scale-105 shadow-[0_0_24px_rgba(96,165,250,0.4)]` :
             state === 'listening' ? 'border-emerald-400 bg-emerald-500/20 shadow-[0_0_20px_rgba(52,211,153,0.3)]' :
             state === 'processing' ? 'border-amber-400 bg-amber-500/20 animate-pulse' :
             'border-slate-700 bg-slate-800/50'
           }`}>
-            <Bot className={`size-16 ${
+            <User className={`size-16 ${
               state === 'speaking' ? 'text-blue-400' :
               state === 'listening' ? 'text-emerald-400' :
               state === 'processing' ? 'text-amber-400' : 'text-slate-400'
@@ -481,7 +451,9 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
           )}
         </div>
 
-        <span className="text-sm font-bold text-slate-200">Krish AI (AI English Mentor)</span>
+        <span className="text-sm font-bold text-slate-200">
+          {mentorName} ({isMale ? 'Male Mentor' : 'Female Mentor'})
+        </span>
         <span className="text-xs text-slate-400 capitalize mt-0.5">
           {state.replace('_', ' ')} • 2D Lightweight Mode
         </span>
@@ -490,18 +462,21 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
         {!hasWebGlError && !prefersReducedMotion && (
           <button
             onClick={() => setIs2DFallbackEnabled(false)}
-            className="mt-4 text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/70 border border-slate-700 transition"
+            className="mt-4 text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/70 border border-slate-700 transition cursor-pointer"
           >
-            <Eye className="size-3.5" /> Switch to 3D Avatar
+            <Eye className="size-3.5" /> Switch to 3D Mentor
           </button>
         )}
       </div>
     );
   }
 
+  const isMale = mentorGender === 'male';
+  const mentorName = isMale ? 'Marcus' : 'Sophia';
+
   return (
     <div className={`relative w-full h-full overflow-hidden ${className}`}>
-      {/* Three.js Container */}
+      {/* Three.js Canvas Container */}
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
       {/* Loading Transition Overlay */}
@@ -509,9 +484,11 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
         <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-white z-20">
           <RefreshCw className="size-8 text-blue-400 animate-spin" />
           <div className="text-center space-y-1">
-            <span className="text-sm font-bold block">Loading 3D Mentor Avatar (Sky)</span>
+            <span className="text-sm font-bold block">
+              Loading 3D Mentor ({mentorName})
+            </span>
             <span className="text-xs text-slate-400 font-mono">
-              {loadingProgress > 0 ? `${loadingProgress}% loaded` : 'Initializing GLB rig...'}
+              {loadingProgress > 0 ? `${loadingProgress}% loaded` : 'Unpacking Meshopt GLB...'}
             </span>
           </div>
         </div>
@@ -520,18 +497,18 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
       {/* Top Right Controls & Attribution */}
       <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
         <a
-          href="https://vtubeme.com/free-vrm-avatars/sky"
+          href="https://talking-avatar.dev/free-talking-avatar"
           target="_blank"
           rel="noreferrer"
-          className="text-[10px] text-slate-400 hover:text-slate-200 bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-800 flex items-center gap-1 transition"
-          title="Sky Avatar by VTubeMe (Licensed under CC BY 4.0)"
+          className="text-[10px] text-slate-400 hover:text-slate-200 bg-slate-900/80 backdrop-blur-sm px-2.5 py-1 rounded-md border border-slate-800 flex items-center gap-1 transition"
+          title="Realistic 3D Human Avatar (talking-avatar.dev)"
         >
-          Model: Sky (CC BY 4.0) <ExternalLink className="size-2.5" />
+          Model: {mentorName} (3D) <ExternalLink className="size-2.5" />
         </a>
 
         <button
           onClick={() => setIs2DFallbackEnabled(true)}
-          className="text-[10px] text-slate-300 hover:text-white bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-700 flex items-center gap-1 transition"
+          className="text-[10px] text-slate-300 hover:text-white bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-700 flex items-center gap-1 transition cursor-pointer"
           title="Switch to lightweight 2D avatar for lower power consumption"
         >
           <EyeOff className="size-3" /> 2D Mode

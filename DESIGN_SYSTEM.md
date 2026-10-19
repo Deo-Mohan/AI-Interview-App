@@ -183,8 +183,11 @@ Typography: Plus Jakarta Sans for headings, Inter for body, Space Mono / JetBrai
 ```markdown
 Immersive AI English speaking conversation studio. 
 Two-column responsive layout (7 cols avatar / 5 cols coaching rail):
-- 3D Avatar Stage: Dark cinematic studio viewport (#0B0F19) with 3-point studio lighting framing an articulate human AI mentor.
-- State Beacon & Audio Waveform: Dynamic top-left status pill ("Krish AI: Listening" with emerald pulse beacon) and bottom multi-bar audio spectrum visualizer reacting to human speech.
+- Dual Mentor Selector: Side-by-side mentor cards for Sophia (Female Coach, violet accent #8B5CF6) and Marcus (Male Specialist, cobalt blue #3563F5). Includes active check indicator, voice tag, "Test Voice" preview trigger, and tactile "Switch Mentor" button.
+- 3D Avatar Stage: Dark cinematic studio viewport (#0B0F19) with 3-point studio lighting framing an articulate human AI mentor with eye-level portrait framing.
+- Natural Posture: Relaxed anatomical resting arm posture along sides with subtle breathing kinematics (zero awkward arm crossing).
+- State Beacon & Audio Waveform: Dynamic top-left status pill ("Sophia: Listening" with emerald pulse beacon) and bottom multi-bar audio spectrum visualizer reacting to human speech.
+- Voice & Speech Calibration Modal: Accessible dialog for adjusting speaking rate (0.80x - 1.25x), voice pitch (0.75 - 1.30), and selecting OS/browser synthetic voices.
 - Voice Control Dock: Tactile floating control island with Mic toggle, Interrupt speech button, Mute audio, and End Session button.
 - Live Dual Transcript Rail: Real-time speech bubbles clearly differentiating learner speech and AI mentor replies.
 - Real-Time Coaching Sidebar: Expandable grammar and vocabulary tips with instant native alternative suggestions.

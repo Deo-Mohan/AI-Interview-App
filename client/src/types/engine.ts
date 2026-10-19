@@ -27,8 +27,24 @@ export interface ConversationMessage {
   vocabularyHighlight?: string;
 }
 
+export type MentorGender = 'female' | 'male';
+
+export interface MentorProfile {
+  id: string;
+  name: string;
+  gender: MentorGender;
+  role: string;
+  tagline: string;
+  voiceName: string;
+  modelUrl: string;
+  accentColor: string;
+  tags: string[];
+}
+
 export interface ConversationEngineConfig {
   modeId: string;
   speechRate?: number; // 0.85 to 1.15
-  voiceGender?: 'female' | 'male';
+  voiceGender?: MentorGender;
+  preferredVoiceUri?: string;
+  speechPitch?: number;
 }

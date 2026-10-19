@@ -37,8 +37,14 @@
   - React 18 / 19 with Vite and TypeScript for rapid HMR, strict type safety, and modern bundle optimizations.
   - Tailwind CSS configured with EventLooped design system tokens.
   - React Router DOM for clean declarative routing and sub-route nesting.
-  - Three.js / `@react-three/fiber` and `@react-three/drei` for procedural, performant 3D avatar rendering.
+  - Three.js with `MeshoptDecoder` for high-performance GLB 3D avatar rendering (both Studio Rig and `@interviewflowai/talking-avatar` SDK).
   - Lucide React for crisp, uniform iconography.
+- **Dual 3D Avatar Mentors**:
+  - **Sophia** (Female Mentor): Executive English & Fluency Coach. Model: `/models/realistic-female.glb`. High-definition Meshopt GLB with 67 blendshapes including 15 Oculus visemes. Natural resting arm posture along sides. Mapped to female voice profile (Sophia Natural / Web Speech Female).
+  - **Marcus** (Male Mentor): Technical & Career Interview Specialist. Model: `/models/realistic-male.glb`. Formal business attire with red tie. Mapped to male voice profile (Marcus Clear / Web Speech Male).
+  - **Synchronized Voice Switching**: Changing the active mentor dynamically updates the TTS voice profile, speech pitch, and UI details without resetting the transcript, session timer, or interview state machine.
+  - **Voice & Speech Calibration**: Speed (0.80x - 1.25x), pitch calibration (0.75 - 1.30), browser/OS voice overrides, and live voice sample preview.
+  - **Lip Sync & Kinematics**: Real speech-driven blendshapes (`jawOpen`, `viseme_aa`, `viseme_O`, `viseme_E`, `viseme_PP`, `viseme_TH`), natural eye blinking every ~3.6s, attentive head nods during listening, and thoughtful head tilt during processing.
 - **Backend**:
   - Node.js with Express and TypeScript.
   - Zod for strict schema validation of all API inputs, client payloads, and AI structured outputs.

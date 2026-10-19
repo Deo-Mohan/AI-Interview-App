@@ -30,6 +30,10 @@ import {
 import { Button, Card, Badge } from '../components/ui';
 import { Avatar3DCanvas } from '../components/Avatar3DCanvas';
 import { TalkingAvatarIntegration } from '../components/TalkingAvatarIntegration';
+import { MentorSelector } from '../components/MentorSelector';
+import { VoiceSettingsModal } from '../components/VoiceSettingsModal';
+import { MentorGender } from '../types/engine';
+import { MENTORS } from '../data/mentors';
 import { useConversationEngine } from '../hooks/useConversationEngine';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { PageTransition, ReactiveAudioWaveform, PulseBeacon } from '../components/motion/MotionTransitions';
@@ -59,6 +63,27 @@ export const ActiveConversationPage: React.FC = () => {
 
   const [avatarEngine, setAvatarEngine] = useState<'studio' | 'sdk'>('sdk');
   const [showReportModal, setShowReportModal] = useState<boolean>(false);
+  const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState<boolean>(false);
+
+  // Persistent Mentor & Voice Profile Configuration
+  const [selectedMentor, setSelectedMentor] = useState<MentorGender>(() => {
+    const saved = localStorage.getItem('krish_selected_mentor');
+    return (saved === 'male' || saved === 'female') ? saved : 'female';
+  });
+
+  const [speechRate, setSpeechRate] = useState<number>(() => {
+    const saved = localStorage.getItem('krish_speech_rate');
+    return saved ? parseFloat(saved) : 1.0;
+  });
+
+  const [speechPitch, setSpeechPitch] = useState<number>(() => {
+    const saved = localStorage.getItem('krish_speech_pitch');
+    return saved ? parseFloat(saved) : (selectedMentor === 'male' ? 0.92 : 1.05);
+  });
+
+  const [selectedVoiceUri, setSelectedVoiceUri] = useState<string>(() => {
+    return localStorage.getItem('krish_voice_uri') || '';
+  });
 
   const {
     state,
@@ -75,6 +100,8 @@ export const ActiveConversationPage: React.FC = () => {
     endConversation,
     retry,
     interruptSpeech,
+    previewVoice,
+    stopAudioPlayback,
     interviewStage,
     interviewQuestionIndex,
     interviewTotalQuestions,
@@ -83,10 +110,45 @@ export const ActiveConversationPage: React.FC = () => {
     finalInterviewReport,
   } = useConversationEngine({
     mode: modeParam,
+    voiceGender: selectedMentor,
+    speechRate,
+    speechPitch,
+    preferredVoiceUri: selectedVoiceUri,
     onSessionEnd: (notes: any) => {
       navigate('/session-complete', { state: { notes } });
     },
   });
+
+  // Switch Mentor Handler with safe speech transition
+  const handleSelectMentor = (gender: MentorGender) => {
+    if (gender === selectedMentor) return;
+    // Safely interrupt any active speech before switching avatar/voice
+    stopAudioPlayback();
+    setSelectedMentor(gender);
+    localStorage.setItem('krish_selected_mentor', gender);
+
+    // If no explicit voice override, reset pitch to default for the selected gender
+    if (!selectedVoiceUri) {
+      const defaultPitch = gender === 'male' ? 0.92 : 1.05;
+      setSpeechPitch(defaultPitch);
+      localStorage.setItem('krish_speech_pitch', defaultPitch.toString());
+    }
+  };
+
+  const handleSpeechRateChange = (rate: number) => {
+    setSpeechRate(rate);
+    localStorage.setItem('krish_speech_rate', rate.toString());
+  };
+
+  const handleSpeechPitchChange = (pitch: number) => {
+    setSpeechPitch(pitch);
+    localStorage.setItem('krish_speech_pitch', pitch.toString());
+  };
+
+  const handleVoiceUriChange = (uri: string) => {
+    setSelectedVoiceUri(uri);
+    localStorage.setItem('krish_voice_uri', uri);
+  };
 
   // When final interview report arrives, open report modal
   useEffect(() => {
@@ -226,7 +288,16 @@ export const ActiveConversationPage: React.FC = () => {
       {/* Main Grid: Avatar & Waveform (7 cols) vs Transcript & Coaching Rail (5 cols) */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
         {/* Left/Center: 3D Avatar Stage & Audio Controls */}
-        <div className="lg:col-span-7 flex flex-col gap-4 min-h-0">
+        <div className="lg:col-span-7 flex flex-col gap-3 min-h-0">
+          {/* Dual Mentor Selector */}
+          <MentorSelector
+            selectedMentor={selectedMentor}
+            onSelectMentor={handleSelectMentor}
+            onOpenVoiceSettings={() => setIsVoiceSettingsOpen(true)}
+            onTestVoice={() => previewVoice()}
+            disabled={state === 'speaking'}
+          />
+
           <Card variant="default" className="flex-1 relative flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-slate-800 p-2 sm:p-4 text-white min-h-[340px] shadow-lg">
             {/* Top State Badge with Pulse Beacon */}
             <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700/80 shadow-md">
@@ -239,7 +310,7 @@ export const ActiveConversationPage: React.FC = () => {
                 size="sm" 
               />
               <span className="text-xs font-extrabold uppercase tracking-wider text-slate-200 font-mono">
-                Krish AI: {state.replace('_', ' ')}
+                {selectedMentor === 'female' ? 'Sophia' : 'Marcus'}: {state.replace('_', ' ')}
               </span>
             </div>
 
@@ -247,7 +318,7 @@ export const ActiveConversationPage: React.FC = () => {
             <div className="absolute top-4 right-4 z-10 flex items-center bg-slate-900/90 backdrop-blur-md p-1 rounded-lg border border-slate-700/80 text-[10px] font-bold">
               <button
                 onClick={() => setAvatarEngine('studio')}
-                className={`px-2 py-1 rounded transition-all ${
+                className={`px-2 py-1 rounded transition-all cursor-pointer ${
                   avatarEngine === 'studio' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -255,7 +326,7 @@ export const ActiveConversationPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setAvatarEngine('sdk')}
-                className={`px-2 py-1 rounded transition-all ${
+                className={`px-2 py-1 rounded transition-all cursor-pointer ${
                   avatarEngine === 'sdk' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -266,10 +337,15 @@ export const ActiveConversationPage: React.FC = () => {
             {/* 3D Human-like Avatar Canvas (Protected by ErrorBoundary) */}
             <ErrorBoundary name="3D Mentor Avatar">
               {avatarEngine === 'studio' ? (
-                <Avatar3DCanvas state={state} className="w-full h-full" />
+                <Avatar3DCanvas 
+                  state={state} 
+                  mentorGender={selectedMentor}
+                  className="w-full h-full" 
+                />
               ) : (
                 <TalkingAvatarIntegration
                   state={state}
+                  mentorGender={selectedMentor}
                   className="w-full h-full"
                   onFallback={() => setAvatarEngine('studio')}
                 />
@@ -402,7 +478,7 @@ export const ActiveConversationPage: React.FC = () => {
                   >
                     <div className="flex items-center gap-1.5 mb-1 px-1">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                        {item.sender === 'user' ? 'You' : 'Krish AI (Mentor)'}
+                        {item.sender === 'user' ? 'You' : `${selectedMentor === 'female' ? 'Sophia' : 'Marcus'} (AI Mentor)`}
                       </span>
                       <span className="font-mono text-[9px] text-slate-400">{item.timestamp}</span>
                     </div>
@@ -743,6 +819,20 @@ export const ActiveConversationPage: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Voice & Speech Calibration Modal */}
+      <VoiceSettingsModal
+        isOpen={isVoiceSettingsOpen}
+        onClose={() => setIsVoiceSettingsOpen(false)}
+        selectedMentor={selectedMentor}
+        speechRate={speechRate}
+        onSpeechRateChange={handleSpeechRateChange}
+        speechPitch={speechPitch}
+        onSpeechPitchChange={handleSpeechPitchChange}
+        selectedVoiceUri={selectedVoiceUri}
+        onVoiceUriChange={handleVoiceUriChange}
+        onTestVoice={() => previewVoice()}
+      />
     </PageTransition>
   );
 };

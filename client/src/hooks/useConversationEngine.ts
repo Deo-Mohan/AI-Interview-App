@@ -11,6 +11,10 @@ interface UseConversationEngineProps {
   modeId?: string;
   mode?: string;
   initialWelcomeText?: string;
+  voiceGender?: 'female' | 'male';
+  speechRate?: number;
+  speechPitch?: number;
+  preferredVoiceUri?: string;
   onSessionEnded?: (messages: ConversationMessage[]) => void;
   onSessionEnd?: (messages: ConversationMessage[]) => void;
 }
@@ -19,6 +23,10 @@ export function useConversationEngine({
   modeId,
   mode,
   initialWelcomeText = "Hello! I'm Krish AI, your English communication mentor. I'm listening closely and ready whenever you'd like to begin.",
+  voiceGender = 'female',
+  speechRate = 1.0,
+  speechPitch,
+  preferredVoiceUri,
   onSessionEnded,
   onSessionEnd,
 }: UseConversationEngineProps) {
@@ -65,11 +73,69 @@ export function useConversationEngine({
   const isComponentMounted = useRef(true);
   const isInterruptedRef = useRef(false);
 
+  // Synchronized voice profile settings
+  const voiceGenderRef = useRef<'female' | 'male'>(voiceGender);
+  const speechRateRef = useRef<number>(speechRate);
+  const speechPitchRef = useRef<number>(speechPitch ?? (voiceGender === 'male' ? 0.92 : 1.05));
+  const preferredVoiceUriRef = useRef<string>(preferredVoiceUri || '');
+
+  useEffect(() => {
+    voiceGenderRef.current = voiceGender;
+    speechRateRef.current = speechRate;
+    speechPitchRef.current = speechPitch ?? (voiceGender === 'male' ? 0.92 : 1.05);
+    preferredVoiceUriRef.current = preferredVoiceUri || '';
+  }, [voiceGender, speechRate, speechPitch, preferredVoiceUri]);
+
+  // Helper to resolve the best matching voice for the active mentor
+  const resolveMentorVoice = useCallback((synth: SpeechSynthesis): SpeechSynthesisVoice | null => {
+    const voices = synth.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    // 1. Explicit user selection by URI or Name
+    if (preferredVoiceUriRef.current) {
+      const explicit = voices.find(
+        v => v.voiceURI === preferredVoiceUriRef.current || v.name === preferredVoiceUriRef.current
+      );
+      if (explicit) return explicit;
+    }
+
+    const englishVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
+    const isMale = voiceGenderRef.current === 'male';
+
+    const maleKeywords = ['david', 'mark', 'guy', 'male', 'george', 'alex', 'daniel', 'oliver', 'tom', 'fred', 'ryan', 'james'];
+    const femaleKeywords = ['zira', 'jenny', 'aria', 'female', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'fiona', 'susan', 'hazel', 'ava'];
+    const targetKeywords = isMale ? maleKeywords : femaleKeywords;
+
+    // 2. High-quality natural / neural / online voice matching gender
+    let match = englishVoices.find(v => 
+      (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Online')) &&
+      targetKeywords.some(k => v.name.toLowerCase().includes(k))
+    );
+
+    // 3. Any English voice matching gender keywords
+    if (!match) {
+      match = englishVoices.find(v => targetKeywords.some(k => v.name.toLowerCase().includes(k)));
+    }
+
+    // 4. Any natural / Google English voice
+    if (!match) {
+      match = englishVoices.find(v => v.name.includes('Natural') || v.name.includes('Google') || v.lang.startsWith('en-US'));
+    }
+
+    // 5. Fallback to any English voice
+    return match || englishVoices[0] || voices[0] || null;
+  }, []);
+
   // Initialize SpeechSynthesis on mount
   useEffect(() => {
     isComponentMounted.current = true;
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis;
+      // Pre-load voices if browser loads them asynchronously
+      synthRef.current.onvoiceschanged = () => {
+        // triggers internal cache update
+        synthRef.current?.getVoices();
+      };
     }
     return () => {
       isComponentMounted.current = false;
@@ -122,14 +188,12 @@ export function useConversationEngine({
     const utterance = new SpeechSynthesisUtterance(text);
     currentUtteranceRef.current = utterance;
     utterance.lang = 'en-US';
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    utterance.rate = speechRateRef.current || 1.0;
+    utterance.pitch = speechPitchRef.current || (voiceGenderRef.current === 'male' ? 0.92 : 1.05);
 
-    // Pick a natural English voice if available
-    const voices = synthRef.current.getVoices();
-    const naturalVoice = voices.find(v => (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Zira')) && v.lang.startsWith('en'));
-    if (naturalVoice) {
-      utterance.voice = naturalVoice;
+    const voice = resolveMentorVoice(synthRef.current);
+    if (voice) {
+      utterance.voice = voice;
     }
 
     utterance.onend = () => {
@@ -150,7 +214,30 @@ export function useConversationEngine({
     };
 
     synthRef.current.speak(utterance);
-  }, [stopAudioPlayback]);
+  }, [stopAudioPlayback, resolveMentorVoice]);
+
+  // Preview / test active voice without breaking session
+  const previewVoice = useCallback((sampleText?: string) => {
+    if (!synthRef.current || typeof window === 'undefined') return;
+    synthRef.current.cancel();
+
+    const isMale = voiceGenderRef.current === 'male';
+    const text = sampleText || (isMale 
+      ? "Hello! I'm Marcus, your technical interview mentor. Let's sharpen your speaking skills today."
+      : "Hello! I'm Sophia, your English fluency mentor. I'm excited to practice with you today.");
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = speechRateRef.current || 1.0;
+    utterance.pitch = speechPitchRef.current || (isMale ? 0.92 : 1.05);
+
+    const voice = resolveMentorVoice(synthRef.current);
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    synthRef.current.speak(utterance);
+  }, [resolveMentorVoice]);
 
   // Request AI response from Backend Mentor / Interview Service
   const requestAIResponse = useCallback(async (userText: string) => {
@@ -495,6 +582,8 @@ export function useConversationEngine({
     endConversation,
     retry: startConversation,
     interruptSpeech,
+    previewVoice,
+    stopAudioPlayback,
     interviewStage,
     interviewQuestionIndex,
     interviewTotalQuestions,

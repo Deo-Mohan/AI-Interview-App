@@ -32,12 +32,16 @@ export const SKY_MORPH_TARGET_MAP: Record<string, string> = {
 
 interface TalkingAvatarIntegrationProps {
   state: ConversationState;
+  mentorGender?: 'female' | 'male';
+  modelUrl?: string;
   className?: string;
   onFallback?: () => void;
 }
 
 export const TalkingAvatarIntegration: React.FC<TalkingAvatarIntegrationProps> = ({
   state,
+  mentorGender = 'female',
+  modelUrl,
   className = '',
   onFallback
 }) => {
@@ -45,6 +49,11 @@ export const TalkingAvatarIntegration: React.FC<TalkingAvatarIntegrationProps> =
   const avatarInstanceRef = useRef<TalkingAvatar | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Resolved 3D Model URL based on gender or explicit prop
+  const resolvedModelUrl = modelUrl || (mentorGender === 'male' 
+    ? '/models/realistic-male.glb' 
+    : '/models/realistic-female.glb');
 
   // Map ConversationState to SDK AvatarStatus ("listening" | "thinking")
   const sdkStatus = state === 'processing' ? 'thinking' : 'listening';
@@ -54,11 +63,13 @@ export const TalkingAvatarIntegration: React.FC<TalkingAvatarIntegrationProps> =
 
     let isDisposed = false;
     let avatar: TalkingAvatar | null = null;
+    setIsLoading(true);
+    setLoadError(null);
 
     try {
       avatar = new TalkingAvatar({
         container: containerRef.current,
-        avatarUrl: '/models/english-coach.glb',
+        avatarUrl: resolvedModelUrl,
         modelUrl: '/models/viseme-model.bin',
         onError: (err: Error) => {
           if (!isDisposed) {
@@ -93,7 +104,7 @@ export const TalkingAvatarIntegration: React.FC<TalkingAvatarIntegrationProps> =
       }
       avatarInstanceRef.current = null;
     };
-  }, []);
+  }, [resolvedModelUrl]);
 
   useEffect(() => {
     if (avatarInstanceRef.current) {
