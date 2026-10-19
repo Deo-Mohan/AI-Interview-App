@@ -1,93 +1,85 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Mic, 
   MicOff, 
   PhoneOff, 
-  Volume2, 
-  Sparkles, 
+  Play, 
+  Pause, 
+  RotateCcw, 
   AlertCircle, 
   CheckCircle2, 
   Lightbulb, 
   Clock, 
   Bot, 
-  User, 
-  Layers,
-  ArrowRight
+  Layers, 
+  ArrowRight,
+  ShieldAlert,
+  Loader2
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
-
-interface TranscriptItem {
-  id: string;
-  sender: 'ai' | 'user';
-  text: string;
-  timestamp: string;
-  correction?: {
-    original: string;
-    suggested: string;
-    tip: string;
-  };
-  naturalAlternative?: string;
-}
+import { useConversationEngine } from '../hooks/useConversationEngine';
 
 export const ActiveConversationPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get('mode') || 'free-conversation';
 
-  // Voice Interaction State
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [mentorState, setMentorState] = useState<'idle' | 'listening' | 'speaking'>('speaking');
-  const [elapsedSeconds, setElapsedSeconds] = useState(82); // Initial simulated timer
+  const transcriptBottomRef = useRef<HTMLDivElement>(null);
 
-  // Dual Transcript Stream
-  const [transcripts, setTranscripts] = useState<TranscriptItem[]>([
-    {
-      id: 't-1',
-      sender: 'ai',
-      text: "Hello Krish! It's fantastic to connect. Today we are focusing on your tech interview communication. Could you briefly introduce yourself and describe a recent architectural challenge you resolved?",
-      timestamp: '00:05'
-    },
-    {
-      id: 't-2',
-      sender: 'user',
-      text: "Sure! In my last project, I didn't knew how to scale the real-time cache. So we discuss about Redis replication with the team.",
-      timestamp: '00:32',
-      correction: {
-        original: "didn't knew",
-        suggested: "didn't know",
-        tip: "Past tense is already carried by 'did/didn't', so use the base verb 'know'."
-      },
-      naturalAlternative: "We evaluated Redis replication strategies to handle our throughput constraints."
-    },
-    {
-      id: 't-3',
-      sender: 'ai',
-      text: "That sounds like a great engineering problem to tackle. When you implemented Redis replication, how did you handle data consistency and potential read latency across replicas?",
-      timestamp: '00:48'
+  // Initialize Conversation Engine
+  const {
+    state,
+    messages,
+    partialTranscript,
+    isMuted,
+    errorMessage,
+    startConversation,
+    togglePause,
+    toggleMute,
+    endConversation,
+    retry
+  } = useConversationEngine({
+    modeId: modeParam,
+    onSessionEnded: (finalMessages) => {
+      // Store session messages in sessionStorage for the Generate Notes review
+      sessionStorage.setItem('currentSessionMessages', JSON.stringify(finalMessages));
+      navigate('/session-complete');
     }
-  ]);
+  });
 
-  // Real-time Coaching Rail Highlights
-  const activeCorrection = transcripts.find(t => t.correction)?.correction;
-  const activeAlternative = transcripts.find(t => t.naturalAlternative)?.naturalAlternative;
-
-  // Timer Tick
+  // Auto-scroll transcript container
   useEffect(() => {
-    const timer = setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    transcriptBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, partialTranscript]);
 
-  const formatTimer = (totalSeconds: number) => {
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  // Extract most recent AI coaching suggestions
+  const latestMessageWithGrammar = [...messages].reverse().find(m => m.grammarFeedback);
+  const latestMessageWithAlternative = [...messages].reverse().find(m => m.naturalAlternative);
 
-  const handleEndSession = () => {
-    navigate('/session-complete');
+  const getStatusBadge = () => {
+    switch (state) {
+      case 'idle':
+        return <Badge variant="slate" size="sm">Idle</Badge>;
+      case 'requesting_permission':
+        return <Badge variant="amber" size="sm" dot>Requesting Mic Access</Badge>;
+      case 'connecting':
+        return <Badge variant="blue" size="sm" dot>Connecting Provider</Badge>;
+      case 'listening':
+        return <Badge variant="emerald" size="sm" dot>Listening to You</Badge>;
+      case 'processing':
+        return <Badge variant="blue" size="sm" dot>AI Thinking</Badge>;
+      case 'speaking':
+        return <Badge variant="blue" size="sm" dot>Mentor Speaking</Badge>;
+      case 'paused':
+        return <Badge variant="amber" size="sm">Paused</Badge>;
+      case 'ending':
+        return <Badge variant="slate" size="sm">Finalizing Session</Badge>;
+      case 'completed':
+        return <Badge variant="emerald" size="sm">Completed</Badge>;
+      case 'failed':
+        return <Badge variant="rose" size="sm" dot>Connection Failed</Badge>;
+    }
   };
 
   return (
@@ -95,52 +87,85 @@ export const ActiveConversationPage: React.FC = () => {
       {/* Top Session Status Bar */}
       <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-white border border-slate-200 shadow-sm shrink-0">
         <div className="flex items-center gap-3">
-          <Badge variant="rose" size="sm" dot>Live Session</Badge>
+          {getStatusBadge()}
           <span className="text-xs font-bold text-slate-800 capitalize">
             Mode: {modeParam.replace('-', ' ')}
           </span>
-          <span className="text-xs text-slate-400">• Web Speech API Active</span>
+          <span className="text-xs text-slate-400 hidden sm:inline">• Interruptible Speech Engine</span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
-            <Clock className="size-3.5 text-blue-600" />
-            <span>{formatTimer(elapsedSeconds)}</span>
-          </div>
+        <div className="flex items-center gap-2">
+          {state !== 'idle' && state !== 'failed' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={togglePause}
+              icon={state === 'paused' ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
+            >
+              {state === 'paused' ? 'Resume' : 'Pause'}
+            </Button>
+          )}
 
           <Button
             variant="destructive"
             size="sm"
-            onClick={handleEndSession}
+            onClick={endConversation}
+            disabled={state === 'idle' || state === 'ending'}
             icon={<PhoneOff className="size-4" />}
           >
-            End & Generate Notes
+            End Conversation
           </Button>
         </div>
       </div>
 
-      {/* Main Grid: Avatar & Waveform (Left/Center) vs Transcript & Coaching Rail (Right) */}
+      {/* Permission or Connection Failure Notice */}
+      {errorMessage && (
+        <Card variant="subtle" className="border-rose-200 bg-rose-50/70 p-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="size-5 text-rose-600 shrink-0" />
+            <div className="text-xs font-semibold text-rose-900">
+              {errorMessage}
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={retry} icon={<RotateCcw className="size-3.5" />}>
+            Retry
+          </Button>
+        </Card>
+      )}
+
+      {/* Main Grid: Avatar & Waveform (7 cols) vs Transcript & Coaching Rail (5 cols) */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
-        {/* Left/Center: 3D Avatar Workspace & Audio Controls (7 cols) */}
+        {/* Left/Center: 3D Avatar Stage & Audio Controls */}
         <div className="lg:col-span-7 flex flex-col gap-4 min-h-0">
-          {/* Avatar Canvas Stage */}
           <Card variant="default" className="flex-1 relative flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 p-6 text-white min-h-[300px]">
-            {/* Status floating badge */}
+            {/* Top State Badge */}
             <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-              <span className="size-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span className={`size-2.5 rounded-full ${
+                state === 'listening' ? 'bg-emerald-400 animate-ping' :
+                state === 'speaking' ? 'bg-blue-400 animate-pulse' :
+                state === 'processing' ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'
+              }`} />
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                Mentor State: {mentorState}
+                Mentor State: {state.replace('_', ' ')}
               </span>
             </div>
 
-            {/* 3D Avatar Center Placeholder for Phase 3 */}
+            {/* Avatar Center Node */}
             <div className="relative flex flex-col items-center justify-center space-y-4">
-              <div className="relative size-36 sm:size-44 rounded-full bg-slate-800/80 border-4 border-blue-500/30 flex items-center justify-center shadow-2xl">
-                {/* Visual pulse ring */}
-                {mentorState === 'speaking' && (
+              <div className={`relative size-36 sm:size-44 rounded-full bg-slate-800/80 border-4 transition-all duration-300 flex items-center justify-center shadow-2xl ${
+                state === 'speaking' ? 'border-blue-500/80 scale-105' :
+                state === 'listening' ? 'border-emerald-500/80' : 'border-slate-700'
+              }`}>
+                {state === 'speaking' && (
                   <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-40"></div>
                 )}
-                <Bot className="size-20 text-blue-400" />
+                {state === 'listening' && (
+                  <div className="absolute inset-0 rounded-full border-2 border-emerald-400 animate-pulse opacity-30"></div>
+                )}
+                <Bot className={`size-20 transition-colors ${
+                  state === 'speaking' ? 'text-blue-400' :
+                  state === 'listening' ? 'text-emerald-400' : 'text-slate-400'
+                }`} />
               </div>
 
               <div className="text-center">
@@ -151,13 +176,16 @@ export const ActiveConversationPage: React.FC = () => {
 
             {/* Simulated Audio Frequency Visualizer */}
             <div className="absolute bottom-6 left-6 right-6 flex items-center justify-center gap-1.5 h-10">
-              {[18, 35, 60, 42, 85, 95, 68, 55, 30, 75, 90, 45, 20, 65, 80, 40].map((h, i) => (
+              {[20, 45, 70, 35, 90, 100, 65, 50, 30, 80, 95, 40, 25, 60, 85, 30].map((h, i) => (
                 <div
                   key={i}
-                  className="w-1.5 bg-blue-500 rounded-full transition-all duration-150"
+                  className={`w-1.5 rounded-full transition-all duration-150 ${
+                    state === 'speaking' ? 'bg-blue-400' :
+                    state === 'listening' ? 'bg-emerald-400' : 'bg-slate-700'
+                  }`}
                   style={{
-                    height: mentorState === 'speaking' ? `${h}%` : '20%',
-                    opacity: mentorState === 'speaking' ? 0.9 : 0.3
+                    height: state === 'speaking' || state === 'listening' ? `${h}%` : '15%',
+                    opacity: state === 'speaking' || state === 'listening' ? 0.9 : 0.2
                   }}
                 />
               ))}
@@ -166,42 +194,57 @@ export const ActiveConversationPage: React.FC = () => {
 
           {/* Interactive Voice Controls Bar */}
           <Card variant="default" className="flex items-center justify-between p-4 shrink-0">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsMicMuted(!isMicMuted)}
-                className={`size-11 rounded-xl flex items-center justify-center font-bold transition-all ${
-                  isMicMuted 
-                    ? 'bg-rose-50 border border-rose-200 text-rose-600' 
-                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm'
-                }`}
-                title={isMicMuted ? "Unmute microphone" : "Mute microphone"}
-              >
-                {isMicMuted ? <MicOff className="size-5" /> : <Mic className="size-5" />}
-              </button>
-
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-slate-800">
-                  {isMicMuted ? 'Microphone Muted' : 'Microphone Listening'}
-                </span>
-                <span className="text-[11px] text-slate-400">
-                  {isMicMuted ? 'Click to speak' : 'Speak naturally anytime'}
-                </span>
+            {state === 'idle' ? (
+              <div className="w-full flex items-center justify-between">
+                <div>
+                  <span className="text-sm font-bold text-slate-900 block">Ready to start?</span>
+                  <span className="text-xs text-slate-500">Click below to allow microphone access and connect to Rachel</span>
+                </div>
+                <Button
+                  variant="tactile"
+                  size="md"
+                  onClick={startConversation}
+                  icon={<Mic className="size-4" />}
+                >
+                  Start Conversation
+                </Button>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={toggleMute}
+                    className={`size-11 rounded-xl flex items-center justify-center font-bold transition-all ${
+                      isMuted 
+                        ? 'bg-rose-50 border border-rose-200 text-rose-600' 
+                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm'
+                    }`}
+                    title={isMuted ? "Unmute microphone" : "Mute microphone"}
+                  >
+                    {isMuted ? <MicOff className="size-5" /> : <Mic className="size-5" />}
+                  </button>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMentorState(mentorState === 'speaking' ? 'listening' : 'speaking')}
-              >
-                Toggle Demo Lip-Sync
-              </Button>
-            </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-800">
+                      {isMuted ? 'Microphone Muted' : state === 'listening' ? 'Listening to You...' : 'Mentor Speaking'}
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {isMuted ? 'Click mic icon to resume speaking' : 'You can interrupt Rachel at any time'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    {messages.length} exchanges
+                  </span>
+                </div>
+              </>
+            )}
           </Card>
         </div>
 
-        {/* Right: Dual Transcript Stream & Coaching Rail (5 cols) */}
+        {/* Right: Dual Transcript Stream & Coaching Rail */}
         <div className="lg:col-span-5 flex flex-col gap-4 min-h-0">
           {/* Transcript Panel */}
           <Card variant="default" className="flex-1 flex flex-col min-h-0 overflow-hidden p-4">
@@ -210,12 +253,19 @@ export const ActiveConversationPage: React.FC = () => {
                 <Layers className="size-4 text-blue-600" />
                 Live Transcript
               </h3>
-              <Badge variant="slate" size="sm">Auto-scrolling</Badge>
+              <Badge variant="slate" size="sm">Real-time STT</Badge>
             </div>
 
             {/* Scrollable Dialogue Stream */}
             <div className="flex-1 overflow-y-auto space-y-3 py-3 pr-1">
-              {transcripts.map((item) => (
+              {messages.length === 0 && !partialTranscript && (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
+                  <Bot className="size-8 mb-2 opacity-50" />
+                  <span className="text-xs font-medium">Click "Start Conversation" to begin your session</span>
+                </div>
+              )}
+
+              {messages.map((item) => (
                 <div
                   key={item.id}
                   className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'}`}
@@ -238,6 +288,22 @@ export const ActiveConversationPage: React.FC = () => {
                   </div>
                 </div>
               ))}
+
+              {/* Streaming Partial Transcript Indicator (Prevents duplicate text) */}
+              {partialTranscript && (
+                <div className="flex flex-col items-end animate-pulse">
+                  <div className="flex items-center gap-1.5 mb-1 px-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
+                      Speaking...
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl text-xs leading-relaxed max-w-[90%] bg-blue-50/70 border border-dashed border-blue-300 text-slate-700 italic rounded-tr-none">
+                    "{partialTranscript}..."
+                  </div>
+                </div>
+              )}
+
+              <div ref={transcriptBottomRef} />
             </div>
           </Card>
 
@@ -248,36 +314,42 @@ export const ActiveConversationPage: React.FC = () => {
                 <Lightbulb className="size-4 text-amber-600" />
                 <span>Real-Time Coaching Rail</span>
               </div>
-              <Badge variant="amber" size="sm">Gentle Feedback</Badge>
+              <Badge variant="amber" size="sm">Active Feedback</Badge>
             </div>
 
             {/* Grammar Correction Card */}
-            {activeCorrection && (
+            {latestMessageWithGrammar?.grammarFeedback ? (
               <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-sm space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block">
                   Grammar Check:
                 </span>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="line-through text-slate-400 font-medium">{activeCorrection.original}</span>
+                  <span className="line-through text-slate-400 font-medium">
+                    {latestMessageWithGrammar.grammarFeedback.original}
+                  </span>
                   <ArrowRight className="size-3 text-slate-400" />
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                    {activeCorrection.suggested}
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    {latestMessageWithGrammar.grammarFeedback.suggested}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-600 font-medium pt-1">
-                  {activeCorrection.tip}
+                  {latestMessageWithGrammar.grammarFeedback.explanation}
                 </p>
+              </div>
+            ) : (
+              <div className="text-xs text-slate-500 italic bg-white/70 p-2.5 rounded-xl border border-slate-200/60">
+                Listening for grammar patterns and verb tenses...
               </div>
             )}
 
             {/* Natural Phrasing Alternative */}
-            {activeAlternative && (
+            {latestMessageWithAlternative?.naturalAlternative && (
               <div className="bg-white p-3 rounded-xl border border-blue-200 shadow-sm space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 block">
-                  Natural Everyday Expression:
+                  More Natural Native Expression:
                 </span>
                 <p className="text-xs font-semibold text-slate-800 italic">
-                  "{activeAlternative}"
+                  "{latestMessageWithAlternative.naturalAlternative}"
                 </p>
               </div>
             )}

@@ -102,22 +102,20 @@
 
 ## 8. Current Status & Phase Log
 - **Date**: 2026-10-19
-- **Current Phase**: **Phase 1 (Completed & Verified)**
+- **Current Phase**: **Phase 2 (Completed & Verified)**
 - **Completed Work**:
-  - Initialized React 19 + TypeScript + Vite client with Tailwind CSS 3 and verified EventLooped design tokens (32px engineering grid, slate borders, tactile buttons, badges, typography scale).
-  - Built responsive application shell: collapsible desktop sidebar (`16rem` to `4rem`), sticky top header with profile & audio status, and mobile drawer.
-  - Implemented all 11 required product pages:
-    1. Dashboard (`/`)
-    2. Practice Modes Selection (`/modes`)
-    3. Conversation Setup (`/conversation-setup`)
-    4. Active Conversation Interface (`/conversation`) with 3D avatar workspace, waveform, dual transcript, and real-time coaching rail
-    5. Session Completion & Generate Notes (`/session-complete`) with CEFR scores, grammar fixes, and Markdown export
-    6. My Notes & Saved Lessons (`/notes`)
-    7. Daily Vocabulary & Dictionary (`/vocabulary`) with pronunciation audio, 3 contextual examples, synonyms/antonyms, and daily limits
-    8. Vocabulary Revision & Flashcards (`/vocabulary-revision`)
-    9. Resume-Aware Interview Setup (`/interview-setup`)
-    10. My Progress & Error Analytics (`/progress`)
-    11. Settings & Provider Architecture (`/settings`)
-  - Successfully verified in browser subagent at both desktop (`1280x800`) and mobile (`375x812`) viewports. Production build compiles cleanly with zero errors.
-- **Unresolved Decisions**: None.
-- **Next Step**: Await user approval to proceed to **Phase 2: Navigation Shell & Main Dashboard Polish** or **Phase 3: 3D Human-like Avatar Engine (Three.js/R3F) & Audio Engine**.
+  - **Backend Provider Adapter Architecture**:
+    - Created Node.js/Express server in `server/` with TypeScript and Zod validation.
+    - Implemented `LLMProviderAdapter` interface with both `MockLLMAdapter` (zero-cost pedagogical grammar analysis & alternatives) and live `OpenAIAdapter` (streaming JSON structured feedback).
+    - Exposed health check (`/api/health`) and conversational reply generator (`/api/conversation/reply`).
+  - **Client Conversation Lifecycle State Machine (`useConversationEngine`)**:
+    - Modeled all 10 explicit conversation states: `idle`, `requesting_permission`, `connecting`, `listening`, `processing`, `speaking`, `paused`, `ending`, `completed`, `failed`.
+    - Integrated Web Audio & browser Speech Recognition with separate partial interim stream and finalized messages to prevent duplicate text.
+    - Added natural speech synthesis with cancellation, mute toggling, and interruption handling (user speech cancels obsolete AI audio immediately).
+    - Added retry and permission denial recovery handling.
+  - **Session Termination & Handoff**:
+    - Added clean termination on "End Conversation" button: stops mic stream, cancels pending audio synthesis, finalizes pending partial speech segments, persists message history, and routes directly to `/session-complete`.
+  - **Verification**:
+    - Full end-to-end browser subagent verification completed (`phase2_verify_1792415874277.webp`).
+    - Verified permission flow, speaking/listening transitions, pause/resume, mute toggle, and clean navigation to `/session-complete`.
+- **Next Step**: Await user approval to proceed to **Phase 3: 3D Human-like Avatar Engine (Three.js / React Three Fiber) & Audio Engine**.
