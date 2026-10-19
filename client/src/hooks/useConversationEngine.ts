@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ConversationState, ConversationMessage } from '../types/engine';
+import { 
+  InterviewStage, 
+  QuestionCategory, 
+  CandidateEvaluation, 
+  FinalInterviewReport 
+} from '../types/interview';
 
 interface UseConversationEngineProps {
   modeId?: string;
@@ -27,6 +33,19 @@ export function useConversationEngine({
   const [partialTranscript, setPartialTranscript] = useState<string>('');
   const [isMuted, setIsMuted] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState(0);
+
+  // 2b. Interview State Machine variables
+  const [interviewStage, setInterviewStage] = useState<InterviewStage>('INTRODUCTION');
+  const [interviewQuestionIndex, setInterviewQuestionIndex] = useState<number>(0);
+  const [interviewTotalQuestions, setInterviewTotalQuestions] = useState<number>(5);
+  const [interviewCategory, setInterviewCategory] = useState<QuestionCategory>('project_deep_dive');
+  const [latestEvaluation, setLatestEvaluation] = useState<CandidateEvaluation | null>(null);
+  const [finalInterviewReport, setFinalInterviewReport] = useState<FinalInterviewReport | null>(null);
+
+  const sessionIdRef = useRef<string>(`interview-${Date.now()}`);
+  const lastAiQuestionRef = useRef<string>('');
+  const interviewStageRef = useRef<InterviewStage>('INTRODUCTION');
+  const questionIndexRef = useRef<number>(0);
 
   // Active session timer
   useEffect(() => {
@@ -133,12 +152,75 @@ export function useConversationEngine({
     synthRef.current.speak(utterance);
   }, [stopAudioPlayback]);
 
-  // Request AI response from Backend Mentor Service (Phase 3)
+  // Request AI response from Backend Mentor / Interview Service
   const requestAIResponse = useCallback(async (userText: string) => {
     setState('processing');
     stopSpeechRecognition();
 
     try {
+      if (activeModeId === 'resume-interview') {
+        const response = await fetch('http://localhost:5000/api/interview/turn', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sessionIdRef.current,
+            currentStage: interviewStageRef.current === 'INTRODUCTION' ? 'QUESTION' : interviewStageRef.current,
+            questionIndex: questionIndexRef.current,
+            totalQuestions: interviewTotalQuestions,
+            candidateRole: 'Senior Full Stack Engineer',
+            seniorityLevel: 'senior',
+            interviewType: 'mixed',
+            jobDescription: 'Senior Software Engineer architecting scalable web applications and high-throughput microservices.',
+            resumeSummary: 'Experienced full stack engineer specializing in React, Node.js, distributed databases, and high-performance frontend engineering.',
+            history: messages.map(m => ({ role: m.sender === 'ai' ? 'assistant' : 'user', text: m.text })),
+            userMessage: userText,
+            previousQuestion: lastAiQuestionRef.current
+          })
+        });
+
+        if (!response.ok) {
+          if (response.status === 412) {
+            setErrorMessage('No AI provider credentials configured. Please configure your Google Gemini, OpenAI, or Anthropic API key in Settings.');
+            setState('failed');
+            return;
+          }
+          throw new Error(`Interview server returned HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        interviewStageRef.current = data.nextStage;
+        setInterviewStage(data.nextStage);
+        questionIndexRef.current = data.questionIndex;
+        setInterviewQuestionIndex(data.questionIndex);
+        setInterviewCategory(data.category);
+        lastAiQuestionRef.current = data.spokenQuestion;
+
+        if (data.evaluation) {
+          setLatestEvaluation(data.evaluation);
+        }
+        if (data.finalReport) {
+          setFinalInterviewReport(data.finalReport);
+        }
+
+        const primaryCorrection = data.evaluation?.grammarCorrections?.[0];
+        const aiMessage: ConversationMessage = {
+          id: `ai-interview-${Date.now()}`,
+          sender: 'ai',
+          text: data.spokenQuestion,
+          timestamp: getFormattedTime(),
+          grammarFeedback: primaryCorrection ? {
+            original: primaryCorrection.original,
+            suggested: primaryCorrection.suggested,
+            explanation: primaryCorrection.explanation
+          } : undefined,
+          naturalAlternative: data.evaluation?.naturalNativeAlternative
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+        speakAIResponse(data.spokenQuestion);
+        return;
+      }
+
       const response = await fetch('http://localhost:5000/api/conversation/mentor-turn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -199,7 +281,7 @@ export function useConversationEngine({
       setMessages(prev => [...prev, aiFallbackMessage]);
       speakAIResponse(fallbackReply);
     }
-  }, [messages, modeId, speakAIResponse, stopSpeechRecognition]);
+  }, [activeModeId, interviewTotalQuestions, messages, modeId, speakAIResponse, stopSpeechRecognition]);
 
   // Start Speech Recognition
   const startSpeechRecognition = useCallback(() => {
@@ -306,23 +388,31 @@ export function useConversationEngine({
 
       setState('connecting');
 
-      // 2. Initial mentor welcome message
+      // 2. Initial welcome message (crisp role-tailored technical interview question if interview mode)
+      const welcomeText = activeModeId === 'resume-interview'
+        ? "Welcome! I'm Krish, your technical hiring manager today. I've reviewed your background, and we'll conduct a structured technical interview covering system architecture, real-world project decisions, and behavioral scenarios. To begin, could you introduce yourself and walk me through your core engineering stack?"
+        : initialWelcomeText;
+
+      lastAiQuestionRef.current = welcomeText;
+      interviewStageRef.current = 'QUESTION';
+      setInterviewStage('QUESTION');
+
       const welcomeMsg: ConversationMessage = {
         id: `ai-init-${Date.now()}`,
         sender: 'ai',
-        text: initialWelcomeText,
+        text: welcomeText,
         timestamp: getFormattedTime()
       };
       setMessages([welcomeMsg]);
 
       // 3. Speak welcome and begin listening
-      speakAIResponse(initialWelcomeText);
+      speakAIResponse(welcomeText);
     } catch (err: any) {
       console.error('[Engine] Microphone permission failed:', err);
       setErrorMessage('Microphone permission was denied. Please grant microphone access to begin voice practice.');
       setState('failed');
     }
-  }, [initialWelcomeText, speakAIResponse]);
+  }, [activeModeId, initialWelcomeText, speakAIResponse]);
 
   // Public Action: Pause / Resume
   const togglePause = useCallback(() => {
@@ -405,5 +495,11 @@ export function useConversationEngine({
     endConversation,
     retry: startConversation,
     interruptSpeech,
+    interviewStage,
+    interviewQuestionIndex,
+    interviewTotalQuestions,
+    interviewCategory,
+    latestEvaluation,
+    finalInterviewReport,
   };
 }

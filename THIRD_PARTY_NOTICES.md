@@ -33,3 +33,14 @@ Modifications made: Exported to GLB for real-time WebGL rendering, custom bone k
 - **Source**: [Three.js](https://threejs.org)
 - **License**: MIT License
 - **Copyright**: (c) 2010-2026 Three.js authors
+
+---
+
+## 4. Talking Avatar SDK: @interviewflowai/talking-avatar
+
+- **Source**: [talking-avatar.dev](https://talking-avatar.dev/free-talking-avatar) / [GitHub](https://github.com/interviewflowai/talking-avatar)
+- **Package**: `@interviewflowai/talking-avatar`
+- **License**: MIT License
+- **Copyright**: (c) InterviewFlowAI
+- **Assets Integrated**: Client SDK viseme phoneme model binary hosted locally at `client/public/models/viseme-model.bin`
+

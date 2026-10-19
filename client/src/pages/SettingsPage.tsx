@@ -340,9 +340,10 @@ export const SettingsPage: React.FC = () => {
                 onChange={e => setSelectedModel(e.target.value)}
                 className="w-full text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
-                <option value="gemini-1.5-flash">gemini-1.5-flash (Recommended - Fast & Free Tier)</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash (Fast & Free Tier)</option>
+                <option value="gemini-2.0-flash">gemini-2.0-flash (Recommended - Next Gen)</option>
+                <option value="gemini-3.8-flash">gemini-3.8-flash (Preview / Next-Gen Flash)</option>
                 <option value="gemini-1.5-pro">gemini-1.5-pro (High Nuance)</option>
-                <option value="gemini-2.0-flash">gemini-2.0-flash (Next Gen)</option>
               </select>
             )}
             {llmProvider === 'openai' && (

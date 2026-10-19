@@ -23,6 +23,8 @@ import { requestIdMiddleware, RequestWithId } from './middleware/requestId.js';
 import { createRateLimiter } from './middleware/rateLimiter.js';
 import { idempotencyMiddleware } from './services/idempotencyService.js';
 import { DataRetentionService } from './services/dataRetentionService.js';
+import { InterviewTurnRequestSchema } from './types/interview.js';
+import { InterviewService } from './services/interviewService.js';
 
 dotenv.config();
 
@@ -336,6 +338,41 @@ app.post('/api/conversation/mentor-turn', mentorTurnLimiter, async (req: Request
     SecretRedactor.log('ERROR', 'Mentor turn generation failed', { error: error.message });
     return res.status(500).json({
       error: 'Failed to generate mentor turn',
+      message: SecretRedactor.redactString(error.message || 'Internal server error')
+    });
+  }
+});
+
+// Professional AI Interviewer Endpoint (State Machine Turn & Dual Evaluation)
+app.post('/api/interview/turn', mentorTurnLimiter, async (req: Request, res: Response) => {
+  try {
+    const parseResult = InterviewTurnRequestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Invalid interview turn request payload',
+        details: parseResult.error.issues
+      });
+    }
+
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id || 'demo-learner-001';
+    const userCredentials = await UserCredentialManager.getResolvedCredential(userId);
+
+    // Enforce BYOK requirement - do not hardcode or silently fallback
+    if (!userCredentials) {
+      return res.status(412).json({
+        error: 'NO_AI_PROVIDER_CONFIGURED',
+        message: 'No AI provider credentials configured. Please configure your Google Gemini, OpenAI, or Anthropic API key in Settings to practice technical interviews.',
+        setupRequired: true
+      });
+    }
+
+    const interviewResponse = await InterviewService.processInterviewTurn(parseResult.data, userCredentials);
+    return res.json(interviewResponse);
+  } catch (error: any) {
+    SecretRedactor.log('ERROR', 'Interview turn generation failed', { error: error.message });
+    return res.status(500).json({
+      error: 'Failed to process interview turn',
       message: SecretRedactor.redactString(error.message || 'Internal server error')
     });
   }

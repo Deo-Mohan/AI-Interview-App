@@ -237,6 +237,47 @@
   - Preserved all live backend API endpoints, dictionary adapter, Web Speech API integration, and BYOK credentials security.
   - Verified 100% clean builds in both `client` (Vite + TypeScript) and `server` (TypeScript).
 
+---
 
+## 14. Enhancement: Professional AI Interviewer & Expressive Avatar (Completed & Verified)
 
+### A. Provider-Agnostic AI Interviewer Engine
+- **Multi-Model Provider Adapters**:
+  - Provider-agnostic LLM executor in `server/src/services/interviewService.ts` supporting Google Gemini, OpenAI, Anthropic Claude, and custom OpenAI-compatible endpoints (Groq, DeepSeek, Local).
+  - Explicit support for **Gemini 3.8 Flash**, **Gemini 2.0 Flash**, and **Gemini 1.5 Flash** in addition to OpenAI GPT-4o/mini and Claude 3.5 Sonnet.
+  - Zero hardcoded credentials or silent fallback keys: requests enforce caller BYOK credentials with HTTP 412 status code if unconfigured.
+- **Structured Interview State Machine**:
+  - `INTRODUCTION`: Welcomes candidate, reviews target role/seniority, sets expectations, and asks initial project/experience question.
+  - `QUESTION`: Asks exactly ONE concise spoken question (1-2 sentences) at a time, tailored to candidate's resume and job description. Cycles across categories: Technical Depth, Project Deep Dive, System Architecture, Behavioral (STAR method), and HR/Leadership.
+  - `LISTENING`: Real-time speech capture with interim streaming transcription and voice interruption support.
+  - `EVALUATION`: Decouples Technical Correctness (0-100) from English Fluency (0-100). Evaluates architectural merit independently from grammar and pronunciation.
+  - `FOLLOW_UP_OR_NEXT_QUESTION`: Analyzes answer depth. If an answer is vague, generic, or incomplete (`isVagueOrIncomplete: true`), triggers a targeted follow-up probing metrics and trade-offs before advancing.
+  - `FINAL_REPORT`: Generates executive-ready scorecard upon completion.
+- **Executive Final Scorecard**:
+  - Overall hiring recommendation: `Strong Hire`, `Hire`, `Leaning Hire`, `Needs Practice`.
+  - Calibrated seniority level (e.g., Senior Software Engineer L5).
+  - Key strengths and growth areas.
+  - Per-question breakdown with candidate answer summary, technical critique, communication critique, and recommended native executive phrasing.
 
+### B. Expressive 3D Avatar & Talking Avatar SDK Integration
+- **Talking-Avatar.dev SDK Evaluation & Integration**:
+  - Evaluated `https://talking-avatar.dev/free-talking-avatar`.
+  - Integrated `@interviewflowai/talking-avatar` SDK (v0.1.3, MIT License) with local phoneme analysis binary `client/public/models/viseme-model.bin` (zero CDN dependency).
+  - Built `TalkingAvatarIntegration.tsx` mapping Oculus 15 visemes (`viseme_aa` -> `aa`, `viseme_PP` -> `PP`, `viseme_E` -> `E`, etc.) to the verified VTubeMe Sky GLB model.
+- **Dual Rendering Engine Toggle**:
+  - Seamless in-app toggle on the avatar stage allowing users to switch between:
+    1. **Studio Rig (Full Body & Arms)**: Custom Three.js renderer featuring organic arm resting postures (eliminating T-pose bind posture), 3-point studio lighting, breathing cycles, subtle nodding, and hand gestures.
+    2. **talking-avatar.dev SDK**: Official open-source audio-driven viseme neural engine.
+- **Deterministic Avatar State Controller**:
+  - Driven deterministically by conversation state machine:
+    - `listening`: Attentive head tilt (`z: 0.035`), soft nod, raised inner brows, resting arms.
+    - `processing` / `thinking`: Contemplative upward gaze (`eyeLookUp: 0.22`), deliberative brow contraction, angled forearm.
+    - `speaking`: Dynamic head cadence, synchronized Oculus viseme phonemes, gentle wrist gestures.
+    - `idle`: Organic breathing cycle and relaxed resting posture.
+  - Interrupting speech immediately halts phonemes and transitions avatar to attentive listening posture.
+  - Reduced-motion support and 2D audio-reactive fallback when WebGL or morph targets are unavailable.
+
+### C. Testing & Verification Summary
+- **Client & Server Builds**: 100% clean builds (`tsc -b && vite build` and `tsc`) with zero errors.
+- **Browser Automation Verification**: Verified `/conversation?mode=resume-interview`, status ribbon (`Q1 of 5`, `QUESTION`), dual engine switcher, and Settings model selector with `gemini-3.8-flash`.
+- **Third-Party Attribution**: Verified in `THIRD_PARTY_NOTICES.md` for Sky avatar (CC BY 4.0) and `@interviewflowai/talking-avatar` (MIT).
