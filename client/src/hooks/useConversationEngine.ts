@@ -115,20 +115,33 @@ export function useConversationEngine({
     synthRef.current.speak(utterance);
   }, [stopAudioPlayback]);
 
-  // Request AI response from Backend Provider Adapter
+  // Request AI response from Backend Mentor Service (Phase 3)
   const requestAIResponse = useCallback(async (userText: string) => {
     setState('processing');
     stopSpeechRecognition();
 
     try {
-      const response = await fetch('http://localhost:5000/api/conversation/reply', {
+      const response = await fetch('http://localhost:5000/api/conversation/mentor-turn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: `sess-${Date.now()}`,
-          modeId,
+          userMessage: userText,
           history: messages.map(m => ({ role: m.sender === 'ai' ? 'assistant' : 'user', text: m.text })),
-          userMessage: userText
+          context: {
+            modeId: modeId as any,
+            targetRole: 'Senior Full Stack Engineer',
+            resumeSummary: 'Experienced frontend and systems developer with React and Node.js expertise.',
+            interviewRound: 'mixed',
+            workplaceContext: 'general',
+            scenarioType: 'customer_service'
+          },
+          preferences: {
+            feedbackMode: 'balanced',
+            mentorTone: 'supportive',
+            speechRate: 'natural',
+            targetCefrLevel: 'B2'
+          }
         })
       });
 
@@ -137,19 +150,24 @@ export function useConversationEngine({
       }
 
       const data = await response.json();
+      const spokenText = data.spoken_response || data.replyText;
 
       const aiMessage: ConversationMessage = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: data.replyText,
+        text: spokenText,
         timestamp: getFormattedTime(),
-        grammarFeedback: data.grammarFeedback,
-        naturalAlternative: data.naturalAlternative,
-        vocabularyHighlight: data.vocabularyHighlight
+        grammarFeedback: data.correction ? {
+          original: data.correction.original,
+          suggested: data.correction.suggested,
+          explanation: data.correction.explanation
+        } : data.grammarFeedback,
+        naturalAlternative: data.natural_alternative || data.naturalAlternative,
+        vocabularyHighlight: data.useful_phrase || data.vocabularyHighlight
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      speakAIResponse(data.replyText);
+      speakAIResponse(spokenText);
     } catch (err: any) {
       console.error('[Engine] AI Reply generation failed:', err);
       // Graceful local fallback reply

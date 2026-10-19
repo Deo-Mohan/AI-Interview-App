@@ -2,7 +2,9 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { GenerateReplyRequestSchema } from './types/conversation.js';
+import { MentorChatRequestSchema } from './types/mentor.js';
 import { MockLLMAdapter, OpenAIAdapter, LLMProviderAdapter } from './services/providers.js';
+import { DefaultAIMentorService } from './services/mentorService.js';
 
 dotenv.config();
 
@@ -17,9 +19,10 @@ app.use(cors({
 
 app.use(express.json());
 
-// Initialize Provider
+// Initialize Providers
 const openAiKey = process.env.OPENAI_API_KEY;
 let llmProvider: LLMProviderAdapter;
+const mentorService = new DefaultAIMentorService(openAiKey);
 
 if (openAiKey && openAiKey.startsWith('sk-') && openAiKey.length > 20) {
   console.log('[Provider] Initializing live OpenAI provider adapter');
@@ -36,11 +39,34 @@ app.get('/api/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     provider: openAiKey ? 'openai' : 'mock-pedagogical',
     speechRecognitionSupported: ['browser-speech', 'whisper-server'],
-    ttsSupported: ['browser-speech-synthesis', 'elevenlabs']
+    ttsSupported: ['browser-speech-synthesis', 'elevenlabs'],
+    activePhase: 'Phase 3 (AI Mentor, Coaching & 5 Modes)'
   });
 });
 
-// Conversational AI Generation Endpoint
+// Full Pedagogical AI Mentor Endpoint (Phase 3)
+app.post('/api/conversation/mentor-turn', async (req: Request, res: Response) => {
+  try {
+    const parseResult = MentorChatRequestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Invalid mentor request payload',
+        details: parseResult.error.issues
+      });
+    }
+
+    const mentorResponse = await mentorService.generateMentorTurn(parseResult.data);
+    return res.json(mentorResponse);
+  } catch (error: any) {
+    console.error('[Error] Mentor turn generation failed:', error);
+    return res.status(500).json({
+      error: 'Failed to generate mentor turn',
+      message: error.message || 'Internal server error'
+    });
+  }
+});
+
+// Legacy Conversational AI Generation Endpoint (Phase 2 compatibility)
 app.post('/api/conversation/reply', async (req: Request, res: Response) => {
   try {
     const parseResult = GenerateReplyRequestSchema.safeParse(req.body);

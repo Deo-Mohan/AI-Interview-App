@@ -102,20 +102,25 @@
 
 ## 8. Current Status & Phase Log
 - **Date**: 2026-10-19
-- **Current Phase**: **Phase 2 (Completed & Verified)**
+- **Current Phase**: **Phase 3 (Completed & Verified)**
 - **Completed Work**:
-  - **Backend Provider Adapter Architecture**:
-    - Created Node.js/Express server in `server/` with TypeScript and Zod validation.
-    - Implemented `LLMProviderAdapter` interface with both `MockLLMAdapter` (zero-cost pedagogical grammar analysis & alternatives) and live `OpenAIAdapter` (streaming JSON structured feedback).
-    - Exposed health check (`/api/health`) and conversational reply generator (`/api/conversation/reply`).
-  - **Client Conversation Lifecycle State Machine (`useConversationEngine`)**:
-    - Modeled all 10 explicit conversation states: `idle`, `requesting_permission`, `connecting`, `listening`, `processing`, `speaking`, `paused`, `ending`, `completed`, `failed`.
-    - Integrated Web Audio & browser Speech Recognition with separate partial interim stream and finalized messages to prevent duplicate text.
-    - Added natural speech synthesis with cancellation, mute toggling, and interruption handling (user speech cancels obsolete AI audio immediately).
-    - Added retry and permission denial recovery handling.
-  - **Session Termination & Handoff**:
-    - Added clean termination on "End Conversation" button: stops mic stream, cancels pending audio synthesis, finalizes pending partial speech segments, persists message history, and routes directly to `/session-complete`.
-  - **Verification**:
-    - Full end-to-end browser subagent verification completed (`phase2_verify_1792415874277.webp`).
-    - Verified permission flow, speaking/listening transitions, pause/resume, mute toggle, and clean navigation to `/session-complete`.
-- **Next Step**: Await user approval to proceed to **Phase 3: 3D Human-like Avatar Engine (Three.js / React Three Fiber) & Audio Engine**.
+  - **Structured Schema & Architecture**:
+    - Created validated `MentorResponseSchema` in `server/src/types/mentor.ts` strictly separating `spoken_response` from teaching metadata (`correction`, `natural_alternative`, `brief_explanation`, `useful_phrase`, `recurring_error_tag`, `practice_exercise`, `evaluation`).
+    - Spoken responses are concise (2-4 sentences max) and never read corrections aloud.
+  - **Pedagogical System Prompt & Mode Instructions (`PromptBuilder`)**:
+    - Stable base system prompt enforcing natural everyday spoken English, acknowledging user intent before correcting, and avoiding robotic repetition or excessive praise.
+    - Implemented 5 specialized modes:
+      1. **Interview**: Evaluates technical correctness separately from English fluency; adaptive technical & HR follow-ups; STAR behavioral answer checking.
+      2. **Real-Life Scenarios**: Roleplays realistic dialogue as the other person (shopping, restaurant, airport travel, customer service).
+      3. **Office English**: Teaches workplace diplomacy, status updates, agile meeting leadership, and polite disagreement.
+      4. **Free Conversation**: Open-ended, engaging conversation with natural follow-up questions.
+      5. **Custom Topic / Group Discussion**: Supports moderator and challenger roles, teaching opinion framing, concrete examples, and respectful rebuttals.
+  - **AI Mentor Service (`DefaultAIMentorService`) & API**:
+    - Supports live OpenAI LLM streaming structured output as well as a zero-cost Pedagogical Rule Engine for instant offline/mock execution.
+    - Added `/api/conversation/mentor-turn` endpoint in Express server.
+  - **Unit Testing**:
+    - Implemented unit test suite in `server/src/test-modes.ts` testing all 5 modes, grammar error traps, conversation-only mode suppression, and clean spoken responses (14/14 tests passing).
+  - **Client Integration**:
+    - Updated `useConversationEngine` in client to send mode context and preferences to `/api/conversation/mentor-turn`.
+    - Client production build verified cleanly with zero errors.
+- **Next Step**: Await user approval to proceed to **Phase 4: 3D Human-like Avatar Engine (Three.js / React Three Fiber) & Audio Visualizer Engine**.
