@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { PageTransition } from '../components/motion/MotionTransitions';
 
 interface CredentialStatus {
   isConfigured: boolean;
@@ -180,7 +181,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12">
+    <PageTransition className="max-w-4xl mx-auto space-y-6 pb-12">
       <div>
         <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
           AI Provider & Key Management (BYOK)
@@ -281,9 +282,9 @@ export const SettingsPage: React.FC = () => {
             <div
               key={p.id}
               onClick={() => handleProviderChange(p.id as any)}
-              className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+              className={`p-4 rounded-xl border cursor-pointer card-hover-lift transition-all flex flex-col justify-between ${
                 llmProvider === p.id
-                  ? 'bg-blue-50/50 border-blue-600 ring-2 ring-blue-600/20'
+                  ? 'bg-blue-50/50 border-blue-600 ring-2 ring-blue-600/20 shadow-subtle'
                   : 'bg-white border-slate-200 hover:border-slate-300'
               }`}
             >
@@ -535,6 +536,6 @@ export const SettingsPage: React.FC = () => {
         </div>
       </Card>
       </ErrorBoundary>
-    </div>
+    </PageTransition>
   );
 };

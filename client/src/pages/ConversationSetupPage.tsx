@@ -15,6 +15,7 @@ import {
   Sliders
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
+import { PageTransition } from '../components/motion/MotionTransitions';
 import { MOCK_PRACTICE_MODES } from '../data/mockData';
 import { ConversationModeId } from '../types';
 
@@ -53,7 +54,7 @@ export const ConversationSetupPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <PageTransition className="max-w-4xl mx-auto space-y-6">
       {/* Back button and page title */}
       <div className="flex items-center gap-3">
         <button
@@ -317,6 +318,6 @@ export const ConversationSetupPage: React.FC = () => {
           Launch Voice Session
         </Button>
       </div>
-    </div>
+    </PageTransition>
   );
 };

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { PageTransition } from '../components/motion/MotionTransitions';
 import { exportNotesToPdf } from '../services/pdfExporter';
 import { SavedNote } from '../types';
 
@@ -96,7 +97,7 @@ ${userNotes}
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <PageTransition className="max-w-4xl mx-auto space-y-6">
       {/* Session Completion Hero Banner */}
       <Card variant="hero" className="border-emerald-200 bg-gradient-to-r from-white to-emerald-50/40">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -272,6 +273,6 @@ ${userNotes}
           Done & Return to Dashboard
         </Button>
       </div>
-    </div>
+    </PageTransition>
   );
 };

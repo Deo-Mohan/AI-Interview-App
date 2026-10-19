@@ -2,16 +2,22 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ConversationState, ConversationMessage } from '../types/engine';
 
 interface UseConversationEngineProps {
-  modeId: string;
+  modeId?: string;
+  mode?: string;
   initialWelcomeText?: string;
   onSessionEnded?: (messages: ConversationMessage[]) => void;
+  onSessionEnd?: (messages: ConversationMessage[]) => void;
 }
 
 export function useConversationEngine({
   modeId,
+  mode,
   initialWelcomeText = "Hello Krish! I'm Rachel, your English communication mentor. I'm listening closely and ready whenever you'd like to begin.",
   onSessionEnded,
+  onSessionEnd,
 }: UseConversationEngineProps) {
+  const activeModeId = modeId || mode || 'general_conversation';
+  const handleSessionEndCallback = onSessionEnded || onSessionEnd;
   // 1. Explicit Lifecycle States: idle, requesting_permission, connecting, listening, processing, speaking, paused, ending, completed, failed
   const [state, setState] = useState<ConversationState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -20,6 +26,18 @@ export function useConversationEngine({
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [partialTranscript, setPartialTranscript] = useState<string>('');
   const [isMuted, setIsMuted] = useState(false);
+  const [durationSeconds, setDurationSeconds] = useState(0);
+
+  // Active session timer
+  useEffect(() => {
+    let interval: any;
+    if (state === 'listening' || state === 'speaking' || state === 'processing') {
+      interval = setInterval(() => {
+        setDurationSeconds(d => d + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [state]);
 
   // 3. Audio & Speech Recognition References
   const recognitionRef = useRef<any>(null);
@@ -318,6 +336,22 @@ export function useConversationEngine({
     }
   }, [state, startSpeechRecognition, stopAudioPlayback, stopSpeechRecognition]);
 
+  const pauseConversation = useCallback(() => {
+    if (state !== 'paused') togglePause();
+  }, [state, togglePause]);
+
+  const resumeConversation = useCallback(() => {
+    if (state === 'paused') togglePause();
+  }, [state, togglePause]);
+
+  const interruptSpeech = useCallback(() => {
+    stopAudioPlayback();
+    if (state === 'speaking') {
+      setState('listening');
+      startSpeechRecognition();
+    }
+  }, [stopAudioPlayback, state, startSpeechRecognition]);
+
   // Public Action: Toggle Mute
   const toggleMute = useCallback(() => {
     setIsMuted(prev => {
@@ -350,21 +384,26 @@ export function useConversationEngine({
     }
 
     setState('completed');
-    if (onSessionEnded) {
-      onSessionEnded(finalMessages);
+    if (handleSessionEndCallback) {
+      handleSessionEndCallback(finalMessages);
     }
-  }, [messages, onSessionEnded, partialTranscript, stopAudioPlayback, stopSpeechRecognition]);
+  }, [handleSessionEndCallback, messages, partialTranscript, stopAudioPlayback, stopSpeechRecognition]);
 
   return {
     state,
     messages,
     partialTranscript,
     isMuted,
+    isPaused: state === 'paused',
+    durationSeconds,
     errorMessage,
     startConversation,
     togglePause,
+    pauseConversation,
+    resumeConversation,
     toggleMute,
     endConversation,
-    retry: startConversation
+    retry: startConversation,
+    interruptSpeech,
   };
 }

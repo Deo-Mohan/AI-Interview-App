@@ -1,5 +1,5 @@
-import React from 'react';
-import { Volume2, Bookmark, BookmarkCheck, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Volume2, Bookmark, BookmarkCheck, ArrowRight, Sparkles, Check, BookOpen } from 'lucide-react';
 import { VocabularyWord } from '../types';
 import { Badge, Button, Card } from './ui';
 
@@ -14,42 +14,56 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
   onToggleFavorite,
   onStartReview,
 }) => {
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
   const playPronunciation = () => {
     if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(word.word);
       utterance.lang = 'en-US';
-      utterance.rate = 0.9;
+      utterance.rate = 0.88;
+      setIsPlayingAudio(true);
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => setIsPlayingAudio(false);
       window.speechSynthesis.speak(utterance);
     }
   };
 
   return (
-    <Card variant="default" className="flex flex-col justify-between hover:border-blue-300 transition-all">
+    <Card 
+      variant="default" 
+      className="flex flex-col justify-between hover:border-blue-300 card-hover-lift transition-all shadow-subtle border-slate-200/90"
+    >
       <div>
         {/* Top Header: Word, Phonetics, Part of speech, and Bookmark */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex flex-wrap items-baseline gap-2.5">
-            <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">{word.word}</h3>
-            <span className="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+        <div className="flex items-start justify-between gap-3 mb-3 border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">{word.word}</h3>
+            <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/70">
               {word.phonetic}
             </span>
-            <Badge variant="blue" size="sm">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
               {word.partOfSpeech}
-            </Badge>
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={playPronunciation}
-              className="size-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-colors"
+              className={`size-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                isPlayingAudio 
+                  ? 'bg-blue-600 text-white border-blue-600 scale-105' 
+                  : 'border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-blue-600'
+              }`}
               title="Listen to pronunciation"
               aria-label="Listen to pronunciation"
             >
-              <Volume2 className="size-4" />
+              <Volume2 className={`size-4 ${isPlayingAudio ? 'animate-pulse' : ''}`} />
             </button>
+
             <button
               onClick={() => onToggleFavorite && onToggleFavorite(word.id)}
-              className="size-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-amber-500 transition-colors"
+              className="size-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-amber-500 transition-colors cursor-pointer"
               title={word.isFavorite ? "Remove favorite" : "Save as favorite"}
             >
               {word.isFavorite ? (
@@ -62,19 +76,19 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
         </div>
 
         {/* Definition */}
-        <p className="text-sm text-slate-700 leading-relaxed font-medium mb-4">
+        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium mb-3.5">
           {word.definition}
         </p>
 
         {/* 3 Example Sentences */}
-        <div className="space-y-1.5 mb-4">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-            Context Examples:
+        <div className="space-y-1.5 mb-3.5">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+            Contextual Usage:
           </span>
-          {word.exampleSentences.slice(0, 3).map((sentence, idx) => (
-            <div key={idx} className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
+          {word.exampleSentences.slice(0, 2).map((sentence, idx) => (
+            <div key={idx} className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50/90 p-2.5 rounded-xl border border-slate-100">
               <span className="font-mono text-[10px] text-blue-600 font-bold shrink-0 mt-0.5">0{idx + 1}.</span>
-              <p className="italic">"{sentence}"</p>
+              <p className="italic font-medium leading-relaxed">"{sentence}"</p>
             </div>
           ))}
         </div>
@@ -82,21 +96,21 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
         {/* Synonyms & Antonyms */}
         <div className="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-100">
           <div>
-            <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Synonyms:</span>
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Synonyms:</span>
             <div className="flex flex-wrap gap-1">
               {word.synonyms.slice(0, 3).map((s, i) => (
-                <span key={i} className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 text-[11px] font-medium">
+                <span key={i} className="px-1.5 py-0.5 bg-slate-100 border border-slate-200/60 rounded text-slate-700 text-[11px] font-bold">
                   {s}
                 </span>
               ))}
             </div>
           </div>
           <div>
-            <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Antonyms:</span>
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Antonyms:</span>
             <div className="flex flex-wrap gap-1">
               {word.antonyms.length > 0 ? (
-                word.antonyms.slice(0, 3).map((a, i) => (
-                  <span key={i} className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 text-[11px] font-medium">
+                word.antonyms.slice(0, 2).map((a, i) => (
+                  <span key={i} className="px-1.5 py-0.5 bg-slate-100 border border-slate-200/60 rounded text-slate-700 text-[11px] font-medium">
                     {a}
                   </span>
                 ))
@@ -124,8 +138,9 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
           onClick={() => onStartReview && onStartReview(word)}
           icon={<ArrowRight className="size-3.5" />}
           iconPosition="right"
+          className="font-bold hover:text-blue-600"
         >
-          Review Word
+          Flashcard Drill
         </Button>
       </div>
     </Card>

@@ -115,7 +115,95 @@
 
 ---
 
-## 6. Accessibility & Motion Guidelines
-- **Contrast**: Text contrast strictly complies with WCAG AA standard (minimum 4.5:1 for normal text against white and slate backgrounds).
+## 6. Motion & Micro-Interaction System (Motion for React)
+
+### Motion Philosophy
+Motion is purposeful, responsive, and performance-first. Animations communicate state changes and hierarchy, never delaying user interaction or blocking user input.
+
+### Motion Primitives (`client/src/components/motion/MotionTransitions.tsx`)
+1. **`PageTransition`**:
+   - Hardware-accelerated entrance with cubic-bezier easing `[0.2, 0.8, 0.2, 1]`
+   - Duration: `0.24s`, `y: 10px -> 0px`, `opacity: 0 -> 1`
+   - Exit: `0.18s`, `y: 0px -> -6px`, `opacity: 1 -> 0`
+   - Applied globally across all pages (`DashboardPage`, `ActiveConversationPage`, `VocabularyPage`, `InterviewSetupPage`, `NotesPage`, `ProgressPage`, `SettingsPage`, `SessionCompletePage`, `ModeSelectionPage`).
+2. **`StaggerContainer` & `StaggerItem`**:
+   - Stagger interval: `0.05s`, initial delay: `0.02s`
+   - Item entrance: `0.28s`, easing `[0.16, 1, 0.3, 1]`, `y: 14px -> 0px`
+   - Used on Dashboard metric cards, practice modes, vocabulary cards, and learning milestones.
+3. **`PulseBeacon`**:
+   - Live status indicator with double-ring radiant animation
+   - Variants: `emerald` (Active/Connected), `blue` (Speaking/Mentor), `amber` (Processing/Thinking), `rose` (Error/Danger), `slate` (Idle/Standby)
+   - Sizes: `sm` (size-2 / ring size-4), `md` (size-2.5 / ring size-5), `lg` (size-3.5 / ring size-7).
+4. **`ReactiveAudioWaveform`**:
+   - Multi-bar reactive frequency visualizer reacting dynamically to 4 engine states:
+     - `idle`: Low baseline rhythm (scaleY 0.25 - 0.4)
+     - `listening`: High-responsiveness rapid green bounce (scaleY 0.3 - 1.0)
+     - `thinking`: Synchronized wave rolling amber ripple (scaleY 0.2 - 0.7)
+     - `speaking`: Expansive resonant cobalt pulses (scaleY 0.4 - 1.1)
+
+### Micro-Interactions & Tactile CSS Classes (`index.css`)
+- **`.btn-tactile`**:
+  - `bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl px-5 py-2.5`
+  - Solid 4px bottom border in deep navy (`#1E3A8A`), active state: `translate-y-[2px] border-b-2`
+  - Subtle micro-hover scale `1.015`
+- **`.btn-tactile-emerald`**:
+  - `bg-emerald-600 hover:bg-emerald-500 border-b-4 border-emerald-900 active:translate-y-[2px]`
+- **`.btn-tactile-slate`**:
+  - `bg-slate-900 hover:bg-slate-800 border-b-4 border-slate-950 active:translate-y-[2px]`
+- **`.card-hover-lift`**:
+  - Hover transform: `translate-y-[-2px]`, shadow: `0 8px 24px -4px rgba(15, 23, 42, 0.08)`
+  - Transition duration: `180ms ease-out`
+- **`.bg-engineering-grid`**:
+  - Mathematical 32px x 32px grid on `#FBFBFC` canvas:
+    `linear-gradient(to right, rgba(226, 232, 240, 0.65) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 232, 240, 0.65) 1px, transparent 1px)`
+
+---
+
+## 7. Google Stitch Design System Specifications
+
+### Stitch Project Integration
+- **Project Resource**: `projects/15218879240367423156`
+- **Project Title**: `AI English Speaking Coach - EventLooped Design`
+- **Core Screen Design Prompts & Specifications**:
+
+#### Screen 1: Executive Dashboard (Desktop & Mobile)
+```markdown
+Executive English learning and speech coaching dashboard in the style of EventLooped (eventlooped.com/free-month). 
+Clean, ultra-high-craft SaaS engineering interface with an off-white canvas (#FBFBFC) overlaid with a subtle 32px mathematical grid.
+Features:
+- Top Header: Minimalist navigation with live mentor status beacon, current streak counter (12 days flaming pill), and user avatar.
+- Hero Banner: High-contrast card with crisp 1px #E2E8F0 border, featuring a tactile cobalt blue "Start Daily Practice" button with 4px dark navy offset depth (#1E3A8A), daily speaking goal ring (14/20 mins), and CEFR proficiency chip (B2 Upper Intermediate).
+- Practice Modes Grid: Bento layout cards for Mock Interview, Scenario Roleplay, Workplace Pitching, Free Flow, and Topic Discussion. Each card has distinctive accent badges and subtle hover lift.
+- Daily Vocabulary Carousel: Word of the Day ("Articulate" /ɑːrˈtɪk.jə.lət/) with audio playback trigger and CEFR mastery tag.
+- Recent Sessions & Grammar Watchlist: Clean data table with monospace timestamps and correction previews.
+Typography: Plus Jakarta Sans for headings, Inter for body, Space Mono / JetBrains Mono for metrics and timestamps.
+```
+
+#### Screen 2: Conversation Studio & Live 3D Avatar (Desktop & Mobile)
+```markdown
+Immersive AI English speaking conversation studio. 
+Two-column responsive layout (7 cols avatar / 5 cols coaching rail):
+- 3D Avatar Stage: Dark cinematic studio viewport (#0B0F19) with 3-point studio lighting framing an articulate human AI mentor.
+- State Beacon & Audio Waveform: Dynamic top-left status pill ("Rachel: Listening" with emerald pulse beacon) and bottom multi-bar audio spectrum visualizer reacting to human speech.
+- Voice Control Dock: Tactile floating control island with Mic toggle, Interrupt speech button, Mute audio, and End Session button.
+- Live Dual Transcript Rail: Real-time speech bubbles clearly differentiating learner speech and AI mentor replies.
+- Real-Time Coaching Sidebar: Expandable grammar and vocabulary tips with instant native alternative suggestions.
+```
+
+---
+
+## 8. Accessibility & Motion Compliance
+- **Contrast**: Complies with WCAG 2.1 AA standards (minimum 4.5:1 for normal text against slate and white backgrounds).
 - **Focus Rings**: Distinct visible focus rings (`focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none`).
-- **Reduced Motion**: All animations wrapped in `@media (prefers-reduced-motion: reduce)` to disable non-essential floating or bouncing transforms.
+- **Reduced Motion Support**:
+  ```css
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  ```
+  All Motion components automatically obey operating system motion preferences.

@@ -9,11 +9,13 @@ import {
   Volume2, 
   Bookmark, 
   Filter,
-  CheckCircle2
+  CheckCircle2,
+  Plus
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
 import { VocabularyCard } from '../components/VocabularyCard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { PageTransition, StaggerContainer, StaggerItem } from '../components/motion/MotionTransitions';
 import { MOCK_VOCABULARY } from '../data/mockData';
 import { VocabularyWord } from '../types';
 
@@ -40,26 +42,26 @@ export const VocabularyPage: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner & Configuration */}
+    <PageTransition className="space-y-6">
+      {/* Top Banner & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Daily Vocabulary Lab & Dictionary
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            Learn high-impact English words with verified definitions, phonetics, audio, and 3 contextual examples
+            Learn high-impact words with contextual definitions, IPA phonetics, audio, and spaced repetition drills
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate('/vocabulary-revision')}
             icon={<RotateCw className="size-3.5" />}
           >
-            Start Flashcard Review
+            Flashcard Drill
           </Button>
           <Button
             variant="tactile"
@@ -72,26 +74,28 @@ export const VocabularyPage: React.FC = () => {
       </div>
 
       {/* Target Progress & Daily Limit Bar */}
-      <Card variant="subtle" className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center font-bold">
+      <Card variant="subtle" className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-slate-200 bg-white shadow-2xs">
+        <div className="flex items-center gap-3.5">
+          <div className="size-11 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center font-bold shrink-0">
             <BookOpen className="size-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-900">Today’s Target: 3 of {dailyLimit} words practiced</span>
-              <Badge variant="emerald" size="sm">60% Complete</Badge>
+              <span className="text-sm font-extrabold text-slate-900">Today’s Target: 3 of {dailyLimit} words practiced</span>
+              <Badge variant="emerald" size="sm" dot>60% Complete</Badge>
             </div>
-            <span className="text-xs text-slate-500">Spaced Repetition algorithm active</span>
+            <div className="w-48 h-2 bg-slate-100 rounded-full overflow-hidden mt-1.5 border border-slate-200/60">
+              <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: '60%' }} />
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-slate-600">Daily New Word Limit:</span>
+        <div className="flex items-center gap-3 self-end sm:self-auto">
+          <span className="text-xs font-bold text-slate-600">Daily Goal:</span>
           <select
             value={dailyLimit}
             onChange={(e) => setDailyLimit(Number(e.target.value))}
-            className="text-xs font-bold bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="text-xs font-bold bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
           >
             <option value={3}>3 words / day (Relaxed)</option>
             <option value={5}>5 words / day (Recommended)</option>
@@ -103,9 +107,9 @@ export const VocabularyPage: React.FC = () => {
       {/* Search & Filter Tabs */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-full sm:w-fit border border-slate-200">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl w-full sm:w-fit border border-slate-200">
           {[
-            { id: 'all', label: `All (${vocabList.length})` },
+            { id: 'all', label: `All Words (${vocabList.length})` },
             { id: 'favorites', label: `Saved (${vocabList.filter(w => w.isFavorite).length})` },
             { id: 'learning', label: 'In Review' },
             { id: 'mastered', label: 'Mastered' },
@@ -113,10 +117,10 @@ export const VocabularyPage: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setFilterType(tab.id as any)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 filterType === tab.id
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
               {tab.label}
@@ -124,13 +128,13 @@ export const VocabularyPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
+        {/* Search Input */}
+        <div className="relative w-full sm:w-72">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            className="w-full text-xs font-medium pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-            placeholder="Search dictionary..."
+            className="w-full text-xs font-medium pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-2xs"
+            placeholder="Search dictionary words or synonyms..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -138,27 +142,29 @@ export const VocabularyPage: React.FC = () => {
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredWords.map((word) => (
-          <ErrorBoundary key={word.id} name={`Vocabulary: ${word.word}`} compact>
-            <VocabularyCard
-              word={word}
-              onToggleFavorite={handleToggleFavorite}
-              onStartReview={() => navigate('/vocabulary-revision')}
-            />
-          </ErrorBoundary>
+          <StaggerItem key={word.id}>
+            <ErrorBoundary name={`Vocabulary: ${word.word}`} compact>
+              <VocabularyCard
+                word={word}
+                onToggleFavorite={handleToggleFavorite}
+                onStartReview={() => navigate('/vocabulary-revision')}
+              />
+            </ErrorBoundary>
+          </StaggerItem>
         ))}
-      </div>
+      </StaggerContainer>
 
       {filteredWords.length === 0 && (
-        <Card variant="subtle" className="text-center py-12">
-          <BookOpen className="size-10 mx-auto text-slate-400 mb-2" />
-          <h4 className="text-sm font-bold text-slate-800">No words found</h4>
+        <Card variant="subtle" className="text-center py-12 border-dashed border-slate-300">
+          <BookOpen className="size-10 mx-auto text-slate-400 mb-2 opacity-60" />
+          <h4 className="text-sm font-bold text-slate-800">No vocabulary words match your filter</h4>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Try a different search term or change your filter.
+            Try adjusting your search query or switch back to the "All Words" tab.
           </p>
         </Card>
       )}
-    </div>
+    </PageTransition>
   );
 };
