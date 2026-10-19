@@ -2,6 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { TalkingAvatar } from '@interviewflowai/talking-avatar';
 import { ConversationState } from '../types/engine';
 import { AlertCircle, Sparkles, RefreshCw } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
+import { AvatarSkeletonShimmer } from './AvatarSkeletonShimmer';
 import { Badge } from './ui';
 
 export const SKY_MORPH_TARGET_MAP: Record<string, string> = {
@@ -134,12 +136,14 @@ export const TalkingAvatarIntegration: React.FC<TalkingAvatarIntegrationProps> =
 
   return (
     <div className={`relative w-full h-full overflow-hidden rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center ${className}`}>
-      {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-slate-950/80">
-          <RefreshCw className="size-6 text-blue-400 animate-spin mb-2" />
-          <span className="text-xs font-semibold text-slate-300">Initializing talking-avatar SDK...</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {isLoading && (
+          <AvatarSkeletonShimmer
+            mentorGender={mentorGender}
+            message="Initializing TalkingAvatar SDK..."
+          />
+        )}
+      </AnimatePresence>
 
       {/* Direct DOM mount point for TalkingAvatar canvas */}
       <div ref={containerRef} className="w-full h-full flex items-center justify-center" />

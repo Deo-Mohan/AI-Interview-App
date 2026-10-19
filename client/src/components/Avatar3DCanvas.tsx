@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { Bot, AlertCircle, Eye, EyeOff, Sparkles, RefreshCw, ExternalLink, User } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
+import { AvatarSkeletonShimmer } from './AvatarSkeletonShimmer';
 import { ConversationState } from '../types/engine';
 
 interface Avatar3DCanvasProps {
@@ -67,6 +69,9 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
 
   useEffect(() => {
     if (!containerRef.current || is2DFallbackEnabled || prefersReducedMotion) return;
+
+    setIsLoading(true);
+    setLoadingProgress(0);
 
     let animationFrameId: number;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -479,20 +484,15 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
       {/* Three.js Canvas Container */}
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
-      {/* Loading Transition Overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-white z-20">
-          <RefreshCw className="size-8 text-blue-400 animate-spin" />
-          <div className="text-center space-y-1">
-            <span className="text-sm font-bold block">
-              Loading 3D Mentor ({mentorName})
-            </span>
-            <span className="text-xs text-slate-400 font-mono">
-              {loadingProgress > 0 ? `${loadingProgress}% loaded` : 'Unpacking Meshopt GLB...'}
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Loading Transition Overlay with Shimmer Skeleton */}
+      <AnimatePresence>
+        {isLoading && (
+          <AvatarSkeletonShimmer
+            mentorGender={mentorGender}
+            progress={loadingProgress}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Subtle 2D Mode Toggle in bottom right */}
       <button

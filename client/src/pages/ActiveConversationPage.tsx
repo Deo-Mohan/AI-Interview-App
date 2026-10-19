@@ -319,12 +319,14 @@ export const ActiveConversationPage: React.FC = () => {
               <ErrorBoundary name="3D Mentor Avatar">
                 {avatarEngine === 'studio' ? (
                   <Avatar3DCanvas 
+                    key={selectedMentor}
                     state={state} 
                     mentorGender={selectedMentor}
                     className="w-full h-full" 
                   />
                 ) : (
                   <TalkingAvatarIntegration
+                    key={selectedMentor}
                     state={state}
                     mentorGender={selectedMentor}
                     className="w-full h-full"
