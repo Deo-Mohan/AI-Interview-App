@@ -1,0 +1,121 @@
+# DESIGN_SYSTEM.md — Verified EventLooped-Inspired Design System
+
+## 1. Reference & Inspection Audit
+- **Reference URL**: `https://www.eventlooped.com/free-month`
+- **Method of Inspection**: Automated visual browser subagent evaluation at desktop (`1280x800`) and mobile (`375x812`), DOM style extraction, and element-level attribute analysis.
+- **Visual Recording**: `eventlooped_inspect_1792239341454.webp`
+- **Screenshots Captured**:
+  - Desktop View: `desktop_view_1792239366456.png`
+  - Mobile View: `mobile_view_1792239374454.png`
+
+---
+
+## 2. Verified Typography & Fonts
+- **Primary UI & Reading Sans-Serif**:
+  - `Inter`, `Plus Jakarta Sans`, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif
+  - Weights Verified: `400` (Regular), `500` (Medium), `600` (SemiBold), `700` (Bold), `800` (ExtraBold).
+- **Monospace & Metric Accents**:
+  - `Space Mono`, `JetBrains Mono`, `Geist Mono`, ui-monospace, monospace.
+  - Used for: Character count badges (`332 chars`), code/phonetic snippets, timer/frequency readouts, and tabular data.
+- **Display Headings**:
+  - `Plus Jakarta Sans` / `Geist` with uppercase tracking and crisp line heights (`1.2` - `1.35`).
+- **Typography Scale**:
+  - `Display / Hero`: `2rem - 2.5rem` (32px - 40px), font-extrabold / font-black, tracking-tight.
+  - `H1 / Section Title`: `1.5rem - 1.875rem` (24px - 30px), font-bold, tracking-tight.
+  - `H2 / Card Title`: `1.125rem - 1.25rem` (18px - 20px), font-bold.
+  - `H3 / Subtitle`: `1rem` (16px), font-semibold.
+  - `Body Text`: `0.875rem` (14px) / `1rem` (16px), line-height 1.5 - 1.6, text-slate-700.
+  - `Small / Metadata`: `0.75rem - 0.8125rem` (12px - 13px), font-medium text-slate-500.
+  - `Micro Tag / Pill Label`: `0.6875rem` (11px), uppercase font-bold, tracking-wider (`tracking-widest`).
+
+---
+
+## 3. Verified Color Palette & Tokens
+
+### Neutrals (Slate Foundation)
+- **App Canvas Background**: `#FBFBFC` (clean off-white canvas with subtle 32px x 32px grid: `linear-gradient(to right, rgba(226, 232, 240, 0.65) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 232, 240, 0.65) 1px, transparent 1px)`)
+- **Card / Surface Background**: `#FFFFFF` (Pure crisp white)
+- **Subtle Surface / Well**: `#F8FAFC` (`slate-50`)
+- **Muted Surface / Hover**: `#F1F5F9` (`slate-100`)
+- **Borders & Dividers**:
+  - Card & Container Border: `#E2E8F0` (`slate-200`)
+  - Subtle Divider: `#F1F5F9` (`slate-100`)
+  - Input / Interactive Border: `#CBD5E1` (`slate-300`)
+  - Accent / Focus Ring: `#2563EB` with `ring-offset-2`
+- **Text Hierarchy**:
+  - Primary: `#0F172A` (`slate-900`)
+  - Body: `#334155` (`slate-700`)
+  - Secondary / Muted: `#64748B` (`slate-500`)
+  - Disabled / Placeholder: `#94A3B8` (`slate-400`)
+
+### Brand & Interactive Colors
+- **Cobalt Primary Blue**:
+  - `blue-50`: `#EFF6FF`
+  - `blue-100`: `#DBEAFE`
+  - `blue-500`: `#3B82F6`
+  - `blue-600`: `#2563EB` (Primary buttons, active indicators, call-to-actions)
+  - `blue-700`: `#1D4ED8`
+  - `blue-900`: `#1E3A8A` (Tactile button bottom border)
+- **Success / Emerald Accents**:
+  - Background: `#ECFDF5` (`emerald-50`)
+  - Border: `#A7F3D0` (`emerald-200` / `emerald-300`)
+  - Text / Icon: `#059669` / `#065F46` (`emerald-600` / `emerald-800`)
+- **Warning / Amber (Corrections & Tips)**:
+  - Background: `#FFFBEB` (`amber-50`)
+  - Border: `#FDE68A` (`amber-200`)
+  - Text: `#B45309` (`amber-700`)
+- **Destructive / Rose (Critical Errors & Resets)**:
+  - Background: `#FFF1F2` (`rose-50`)
+  - Border: `#FECDD3` (`rose-200`)
+  - Text: `#E11D48` (`rose-600`)
+
+---
+
+## 4. Layout, Navigation & Breakpoints
+
+### Responsive App Shell
+- **Sidebar Widths**:
+  - Desktop Expanded: `16rem` (`256px`, `--sidebar-width: 16rem`)
+  - Desktop Collapsed (Icon Only): `3.5rem` (`56px`, `--sidebar-width-icon: 3.5rem`)
+  - Mobile (<768px): Collapsed into responsive slide-out drawer via mobile header trigger.
+- **Top Bar**:
+  - Sticky at top (`h-14` or `h-16`), bordered bottom `border-slate-200`, background `bg-white/95 backdrop-blur-sm`.
+- **Responsive Breakpoints**:
+  - Mobile: `< 768px` (single-column card stacks, `p-4`)
+  - Tablet: `768px - 1024px` (2-column grids, collapsible sidebar drawer, `p-6`)
+  - Desktop: `1024px - 1280px` (Expanded sidebar, 2 or 3 column card grids)
+  - Wide Desktop: `> 1280px` (Max container `max-w-7xl` or `max-w-6xl` centered, `p-8` to `p-10`)
+
+---
+
+## 5. Components & UI Patterns
+
+### Cards
+- **Standard Card**: `rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`
+- **Featured / Hero Card**: `rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm`
+- **Sub-well / Code / Monospace Box**: `rounded-xl border border-slate-100 bg-slate-50 p-4 font-mono text-sm leading-relaxed text-slate-700`
+
+### Buttons & Interactive Controls
+- **Tactile Primary Action**:
+  - `bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl px-6 py-3.5`
+  - `border-b-4 border-blue-900 active:translate-y-0.5 active:border-b-2 transition-all`
+- **Secondary / Outline Action**:
+  - `rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 active:translate-y-px`
+- **Ghost / Icon Button**:
+  - `size-8 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors`
+
+### Pills, Badges & Micro-tags
+- **Status Badge**: `rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider`
+- **Numbered Milestone Indicator**: `size-10 rounded-lg bg-slate-950 text-white font-bold flex items-center justify-center shadow-sm`
+- **Ping Dot Indicator**: `size-2 animate-ping rounded-full bg-emerald-400`
+
+### Dialogue & Conversation Bubbles
+- **Mentor Speech Bubble**: Left-aligned, `bg-white border border-slate-200 rounded-2xl p-4 shadow-sm`, with audio playback icon and clickable pronunciation help.
+- **User Speech Bubble**: Right-aligned, `bg-blue-50/60 border border-blue-200 rounded-2xl p-4`, with real-time waveform and grammar correction popovers.
+
+---
+
+## 6. Accessibility & Motion Guidelines
+- **Contrast**: Text contrast strictly complies with WCAG AA standard (minimum 4.5:1 for normal text against white and slate backgrounds).
+- **Focus Rings**: Distinct visible focus rings (`focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none`).
+- **Reduced Motion**: All animations wrapped in `@media (prefers-reduced-motion: reduce)` to disable non-essential floating or bouncing transforms.

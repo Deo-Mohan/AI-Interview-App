@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-canvas text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900;
+    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Subtle engineering grid background from EventLooped */
+.bg-engineering-grid {
+  background-color: #FBFBFC;
+  background-image: linear-gradient(to right, rgba(226, 232, 240, 0.65) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(226, 232, 240, 0.65) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Tactile button pressed styling */
+.btn-tactile {
+  border-bottom: 4px solid #1E3A8A;
+  transition: all 0.1s ease-in-out;
+}
+.btn-tactile:active {
+  transform: translateY(2px);
+  border-bottom: 2px solid #1E3A8A;
+}
+
+/* Smooth micro-animations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
