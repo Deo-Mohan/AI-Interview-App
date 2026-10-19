@@ -13,6 +13,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { exportNotesToPdf } from '../services/pdfExporter';
 import { MOCK_SAVED_NOTES } from '../data/mockData';
 import { SavedNote } from '../types';
@@ -127,125 +128,127 @@ ${note.userNotes || 'None'}
         {/* Right Column: Note Detail Viewer (8 cols) */}
         {activeNote && (
           <div className="lg:col-span-8 space-y-5">
-            <Card variant="default" className="space-y-6">
-              {/* Note Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Badge variant="blue" size="sm">{activeNote.cefrLevel}</Badge>
-                    <span className="text-xs text-slate-400 font-mono">• {activeNote.date}</span>
-                  </div>
-                  <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                    {activeNote.title}
-                  </h3>
-                  <span className="text-xs text-slate-500 font-medium block mt-0.5">
-                    Mode: {activeNote.modeTitle}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exportNotesToPdf(activeNote)}
-                    icon={<FileDown className="size-3.5 text-rose-600" />}
-                  >
-                    Export PDF
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleExportSingleNote(activeNote)}
-                    icon={<Download className="size-3.5" />}
-                  >
-                    Export .md
-                  </Button>
-                </div>
-              </div>
-
-              {/* Overview & Cadence */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Session Recap
-                </span>
-                <p className="text-sm text-slate-700 leading-relaxed font-medium">
-                  {activeNote.overview}
-                </p>
-                <div className="flex items-center gap-3 pt-2 text-xs font-mono text-slate-500">
-                  <span className="bg-slate-100 px-2.5 py-1 rounded-lg">
-                    Speaking Speed: <strong>{activeNote.speakingSpeedWpm} WPM</strong>
-                  </span>
-                </div>
-              </div>
-
-              {/* Grammar Corrections Section */}
-              <div className="space-y-3 pt-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Grammar Diagnostics & Explanations
-                </span>
-                <div className="space-y-2.5">
-                  {activeNote.grammarFeedback.map((item, idx) => (
-                    <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="line-through text-slate-400 font-semibold">{item.original}</span>
-                        <span className="text-slate-400">→</span>
-                        <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          {item.correction}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                        {item.explanation}
-                      </p>
+            <ErrorBoundary name="Note Detail Viewer" resetKeys={[activeNoteId]}>
+              <Card variant="default" className="space-y-6">
+                {/* Note Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Badge variant="blue" size="sm">{activeNote.cefrLevel}</Badge>
+                      <span className="text-xs text-slate-400 font-mono">• {activeNote.date}</span>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Natural Alternatives Section */}
-              <div className="space-y-3 pt-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Native Phrasing Alternatives
-                </span>
-                <div className="space-y-2.5">
-                  {activeNote.naturalAlternatives.map((alt, idx) => (
-                    <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase">Learner Phrasing:</span>
-                      <p className="text-xs text-slate-600 italic">"{alt.learnerSaid}"</p>
-                      <span className="text-[10px] text-blue-600 font-bold uppercase block pt-1">Idiomatic Upgrade:</span>
-                      <p className="text-xs font-bold text-slate-800 bg-blue-50/60 p-2 rounded-lg border border-blue-100">
-                        "{alt.betterAlternative}"
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Vocabulary Highlights */}
-              <div className="space-y-2 pt-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Highlighted Vocabulary
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {activeNote.newVocabulary.map((vocab) => (
-                    <span key={vocab} className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700">
-                      {vocab}
+                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                      {activeNote.title}
+                    </h3>
+                    <span className="text-xs text-slate-500 font-medium block mt-0.5">
+                      Mode: {activeNote.modeTitle}
                     </span>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Personal Reflection Notes */}
-              {activeNote.userNotes && (
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Learner Self-Reflection
-                  </span>
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs text-slate-700 italic">
-                    "{activeNote.userNotes}"
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => exportNotesToPdf(activeNote)}
+                      icon={<FileDown className="size-3.5 text-rose-600" />}
+                    >
+                      Export PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleExportSingleNote(activeNote)}
+                      icon={<Download className="size-3.5" />}
+                    >
+                      Export .md
+                    </Button>
                   </div>
                 </div>
-              )}
-            </Card>
+
+                {/* Overview & Cadence */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Session Recap
+                  </span>
+                  <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                    {activeNote.overview}
+                  </p>
+                  <div className="flex items-center gap-3 pt-2 text-xs font-mono text-slate-500">
+                    <span className="bg-slate-100 px-2.5 py-1 rounded-lg">
+                      Speaking Speed: <strong>{activeNote.speakingSpeedWpm} WPM</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Grammar Corrections Section */}
+                <div className="space-y-3 pt-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Grammar Diagnostics & Explanations
+                  </span>
+                  <div className="space-y-2.5">
+                    {activeNote.grammarFeedback.map((item, idx) => (
+                      <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="line-through text-slate-400 font-semibold">{item.original}</span>
+                          <span className="text-slate-400">→</span>
+                          <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            {item.correction}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                          {item.explanation}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Natural Alternatives Section */}
+                <div className="space-y-3 pt-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Native Phrasing Alternatives
+                  </span>
+                  <div className="space-y-2.5">
+                    {activeNote.naturalAlternatives.map((alt, idx) => (
+                      <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Learner Phrasing:</span>
+                        <p className="text-xs text-slate-600 italic">"{alt.learnerSaid}"</p>
+                        <span className="text-[10px] text-blue-600 font-bold uppercase block pt-1">Idiomatic Upgrade:</span>
+                        <p className="text-xs font-bold text-slate-800 bg-blue-50/60 p-2 rounded-lg border border-blue-100">
+                          "{alt.betterAlternative}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Vocabulary Highlights */}
+                <div className="space-y-2 pt-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Highlighted Vocabulary
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {activeNote.newVocabulary.map((vocab) => (
+                      <span key={vocab} className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700">
+                        {vocab}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Personal Reflection Notes */}
+                {activeNote.userNotes && (
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Learner Self-Reflection
+                    </span>
+                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs text-slate-700 italic">
+                      "{activeNote.userNotes}"
+                    </div>
+                  </div>
+                )}
+              </Card>
+            </ErrorBoundary>
           </div>
         )}
       </div>

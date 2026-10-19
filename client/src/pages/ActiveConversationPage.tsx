@@ -21,6 +21,7 @@ import { Button, Card, Badge } from '../components/ui';
 import { Avatar3DCanvas } from '../components/Avatar3DCanvas';
 import { useConversationEngine } from '../hooks/useConversationEngine';
 import { Key, ShieldCheck } from 'lucide-react';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export const ActiveConversationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -220,8 +221,10 @@ export const ActiveConversationPage: React.FC = () => {
               </span>
             </div>
 
-            {/* 3D Human-like Avatar Canvas */}
-            <Avatar3DCanvas state={state} className="w-full h-full" />
+            {/* 3D Human-like Avatar Canvas (Protected by ErrorBoundary) */}
+            <ErrorBoundary name="3D Mentor Avatar">
+              <Avatar3DCanvas state={state} className="w-full h-full" />
+            </ErrorBoundary>
 
             {/* Simulated Audio Frequency Visualizer */}
             <div className="absolute bottom-4 left-6 right-6 flex items-center justify-center gap-1.5 h-8 pointer-events-none">
@@ -356,53 +359,55 @@ export const ActiveConversationPage: React.FC = () => {
             </div>
           </Card>
 
-          {/* Real-Time AI Coaching Rail */}
-          <Card variant="subtle" className="space-y-3 shrink-0 border-amber-200 bg-amber-50/50 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-amber-800 font-bold text-xs">
-                <Lightbulb className="size-4 text-amber-600" />
-                <span>Real-Time Coaching Rail</span>
-              </div>
-              <Badge variant="amber" size="sm">Active Feedback</Badge>
-            </div>
-
-            {/* Grammar Correction Card */}
-            {latestMessageWithGrammar?.grammarFeedback ? (
-              <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-sm space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block">
-                  Grammar Check:
-                </span>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="line-through text-slate-400 font-medium">
-                    {latestMessageWithGrammar.grammarFeedback.original}
-                  </span>
-                  <ArrowRight className="size-3 text-slate-400" />
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                    {latestMessageWithGrammar.grammarFeedback.suggested}
-                  </span>
+          {/* Real-Time AI Coaching Rail (Protected by ErrorBoundary) */}
+          <ErrorBoundary name="Real-Time Coaching Rail" compact>
+            <Card variant="subtle" className="space-y-3 shrink-0 border-amber-200 bg-amber-50/50 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-amber-800 font-bold text-xs">
+                  <Lightbulb className="size-4 text-amber-600" />
+                  <span>Real-Time Coaching Rail</span>
                 </div>
-                <p className="text-[11px] text-slate-600 font-medium pt-1">
-                  {latestMessageWithGrammar.grammarFeedback.explanation}
-                </p>
+                <Badge variant="amber" size="sm">Active Feedback</Badge>
               </div>
-            ) : (
-              <div className="text-xs text-slate-500 italic bg-white/70 p-2.5 rounded-xl border border-slate-200/60">
-                Listening for grammar patterns and verb tenses...
-              </div>
-            )}
 
-            {/* Natural Phrasing Alternative */}
-            {latestMessageWithAlternative?.naturalAlternative && (
-              <div className="bg-white p-3 rounded-xl border border-blue-200 shadow-sm space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 block">
-                  More Natural Native Expression:
-                </span>
-                <p className="text-xs font-semibold text-slate-800 italic">
-                  "{latestMessageWithAlternative.naturalAlternative}"
-                </p>
-              </div>
-            )}
-          </Card>
+              {/* Grammar Correction Card */}
+              {latestMessageWithGrammar?.grammarFeedback ? (
+                <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-sm space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block">
+                    Grammar Check:
+                  </span>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="line-through text-slate-400 font-medium">
+                      {latestMessageWithGrammar.grammarFeedback.original}
+                    </span>
+                    <ArrowRight className="size-3 text-slate-400" />
+                    <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                      {latestMessageWithGrammar.grammarFeedback.suggested}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 font-medium pt-1">
+                    {latestMessageWithGrammar.grammarFeedback.explanation}
+                  </p>
+                </div>
+              ) : (
+                <div className="text-xs text-slate-500 italic bg-white/70 p-2.5 rounded-xl border border-slate-200/60">
+                  Listening for grammar patterns and verb tenses...
+                </div>
+              )}
+
+              {/* Natural Phrasing Alternative */}
+              {latestMessageWithAlternative?.naturalAlternative && (
+                <div className="bg-white p-3 rounded-xl border border-blue-200 shadow-sm space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 block">
+                    More Natural Native Expression:
+                  </span>
+                  <p className="text-xs font-semibold text-slate-800 italic">
+                    "{latestMessageWithAlternative.naturalAlternative}"
+                  </p>
+                </div>
+              )}
+            </Card>
+          </ErrorBoundary>
         </div>
       </div>
     </div>

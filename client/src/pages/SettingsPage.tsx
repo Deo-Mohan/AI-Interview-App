@@ -17,6 +17,7 @@ import {
   Globe
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 interface CredentialStatus {
   isConfigured: boolean;
@@ -190,52 +191,55 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* Active Configuration Status Banner */}
-      <Card variant="default" className="border-slate-200 p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className={`size-10 rounded-xl flex items-center justify-center ${
-              activeCredential?.isConfigured ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-            }`}>
-              <Key className="size-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-slate-900">Active Provider Status</span>
-                {activeCredential?.isConfigured ? (
-                  <Badge variant="emerald" size="sm" dot>Connected</Badge>
-                ) : (
-                  <Badge variant="amber" size="sm" dot>Not Configured</Badge>
-                )}
+      <ErrorBoundary name="Provider Status Banner" compact>
+        <Card variant="default" className="border-slate-200 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`size-10 rounded-xl flex items-center justify-center ${
+                activeCredential?.isConfigured ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+              }`}>
+                <Key className="size-5" />
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {activeCredential?.isConfigured && activeCredential.metadata ? (
-                  <span>
-                    Provider: <strong className="text-slate-800 uppercase">{activeCredential.metadata.provider}</strong> | 
-                    Model: <strong className="text-slate-800">{activeCredential.metadata.model}</strong> | 
-                    Key: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700">{activeCredential.metadata.keyLastFour}</code> ({activeCredential.metadata.persistenceType})
-                  </span>
-                ) : (
-                  'Please configure an AI model below to practice voice sessions with Rachel.'
-                )}
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-900">Active Provider Status</span>
+                  {activeCredential?.isConfigured ? (
+                    <Badge variant="emerald" size="sm" dot>Connected</Badge>
+                  ) : (
+                    <Badge variant="amber" size="sm" dot>Not Configured</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {activeCredential?.isConfigured && activeCredential.metadata ? (
+                    <span>
+                      Provider: <strong className="text-slate-800 uppercase">{activeCredential.metadata.provider}</strong> | 
+                      Model: <strong className="text-slate-800">{activeCredential.metadata.model}</strong> | 
+                      Key: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700">{activeCredential.metadata.keyLastFour}</code> ({activeCredential.metadata.persistenceType})
+                    </span>
+                  ) : (
+                    'Please configure an AI model below to practice voice sessions with Rachel.'
+                  )}
+                </p>
+              </div>
             </div>
+            {activeCredential?.isConfigured && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDeleteCredential}
+                className="text-rose-600 hover:bg-rose-50 border-rose-200 self-start sm:self-auto"
+              >
+                <Trash2 className="size-3.5 mr-1" /> Remove Key
+              </Button>
+            )}
           </div>
-          {activeCredential?.isConfigured && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDeleteCredential}
-              className="text-rose-600 hover:bg-rose-50 border-rose-200 self-start sm:self-auto"
-            >
-              <Trash2 className="size-3.5 mr-1" /> Remove Key
-            </Button>
-          )}
-        </div>
-      </Card>
+        </Card>
+      </ErrorBoundary>
 
-      {/* Provider Selector Cards */}
-      <Card variant="default" className="space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      {/* Provider Selector Cards & Setup (Protected by ErrorBoundary) */}
+      <ErrorBoundary name="AI Provider & Key Configuration">
+        <Card variant="default" className="space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <Server className="size-5 text-slate-700" />
             <h3 className="text-base font-bold text-slate-900">Select AI Intelligence Provider</h3>
@@ -530,6 +534,7 @@ export const SettingsPage: React.FC = () => {
           </Button>
         </div>
       </Card>
+      </ErrorBoundary>
     </div>
   );
 };

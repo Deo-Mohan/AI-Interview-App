@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
 import { VocabularyCard } from '../components/VocabularyCard';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { MOCK_VOCABULARY } from '../data/mockData';
 import { VocabularyWord } from '../types';
 
@@ -139,12 +140,13 @@ export const VocabularyPage: React.FC = () => {
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredWords.map((word) => (
-          <VocabularyCard
-            key={word.id}
-            word={word}
-            onToggleFavorite={handleToggleFavorite}
-            onStartReview={() => navigate('/vocabulary-revision')}
-          />
+          <ErrorBoundary key={word.id} name={`Vocabulary: ${word.word}`} compact>
+            <VocabularyCard
+              word={word}
+              onToggleFavorite={handleToggleFavorite}
+              onStartReview={() => navigate('/vocabulary-revision')}
+            />
+          </ErrorBoundary>
         ))}
       </div>
 
