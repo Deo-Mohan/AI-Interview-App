@@ -11,17 +11,38 @@ export interface AIMentorService {
  * 1. Live OpenAI LLM (when OPENAI_API_KEY is present)
  * 2. Deterministic, high-fidelity Pedagogical Rule Engine (Zero external API costs, testable, fast)
  */
+import { ProviderManager, ManagedProvider } from './providerManager.js';
+
 export class DefaultAIMentorService implements AIMentorService {
   private apiKey?: string;
+  private providerManager?: ProviderManager;
 
-  constructor(apiKey?: string) {
+  constructor(apiKey?: string, providerManager?: ProviderManager) {
     this.apiKey = apiKey;
+    this.providerManager = providerManager;
   }
 
   async generateMentorTurn(request: MentorChatRequest): Promise<MentorResponse> {
+    if (this.providerManager) {
+      const execution = await this.providerManager.executeWithFailover('openai', async (provider: ManagedProvider) => {
+        if (provider.config.type === 'mock-pedagogical') {
+          const res = this.generatePedagogicalTurn(request);
+          return { result: res, promptTokens: 100, completionTokens: 50 };
+        }
+        const openAiRes = await this.callOpenAIMentor(request, provider.config.apiKey || this.apiKey);
+        return {
+          result: openAiRes.response,
+          promptTokens: openAiRes.promptTokens,
+          completionTokens: openAiRes.completionTokens
+        };
+      });
+      return execution.result;
+    }
+
     if (this.apiKey && this.apiKey.startsWith('sk-') && this.apiKey.length > 20) {
       try {
-        return await this.callOpenAIMentor(request);
+        const { response } = await this.callOpenAIMentor(request, this.apiKey);
+        return response;
       } catch (err) {
         console.warn('[AIMentorService] OpenAI call failed, falling back to Pedagogical Engine:', err);
       }
@@ -30,7 +51,8 @@ export class DefaultAIMentorService implements AIMentorService {
     return this.generatePedagogicalTurn(request);
   }
 
-  private async callOpenAIMentor(request: MentorChatRequest): Promise<MentorResponse> {
+  private async callOpenAIMentor(request: MentorChatRequest, key?: string): Promise<{ response: MentorResponse; promptTokens: number; completionTokens: number }> {
+    const activeKey = key || this.apiKey;
     const baseSystemPrompt = PromptBuilder.getBaseSystemPrompt(request.preferences);
     const modeInstructions = PromptBuilder.getModeInstructions(request.context);
 
@@ -50,7 +72,7 @@ export class DefaultAIMentorService implements AIMentorService {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.apiKey}`
+        "Authorization": `Bearer ${activeKey}`
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
@@ -66,7 +88,13 @@ export class DefaultAIMentorService implements AIMentorService {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`OpenAI error (${response.status}): ${errText}`);
+      const error: any = new Error(`OpenAI error (${response.status}): ${errText}`);
+      error.status = response.status;
+      const retryAfter = response.headers.get('retry-after');
+      if (retryAfter) {
+        error.retryAfterSeconds = parseInt(retryAfter, 10) || 60;
+      }
+      throw error;
     }
 
     const data = (await response.json()) as any;
@@ -74,7 +102,12 @@ export class DefaultAIMentorService implements AIMentorService {
     const parsed = JSON.parse(rawContent);
 
     // Validate with Zod schema
-    return MentorResponseSchema.parse(parsed);
+    const validated = MentorResponseSchema.parse(parsed);
+    return {
+      response: validated,
+      promptTokens: data.usage?.prompt_tokens || 120,
+      completionTokens: data.usage?.completion_tokens || 60
+    };
   }
 
   /**
