@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   FileText, 
   Download, 
+  FileDown,
   Trash2, 
   Search, 
   Sparkles, 
@@ -12,6 +13,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
+import { exportNotesToPdf } from '../services/pdfExporter';
 import { MOCK_SAVED_NOTES } from '../data/mockData';
 import { SavedNote } from '../types';
 
@@ -142,6 +144,14 @@ ${note.userNotes || 'None'}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportNotesToPdf(activeNote)}
+                    icon={<FileDown className="size-3.5 text-rose-600" />}
+                  >
+                    Export PDF
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"

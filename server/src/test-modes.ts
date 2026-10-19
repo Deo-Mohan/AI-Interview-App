@@ -48,7 +48,7 @@ async function runTests() {
   };
   const res2 = await mentor.generateMentorTurn(scenarioReq);
   assert(res2.spoken_response.includes("menu") || res2.spoken_response.includes("special") || res2.spoken_response.includes("table"), "Scenario roleplay responds in character as restaurant server");
-  assert(res2.useful_phrase?.includes("check") || res2.useful_phrase?.includes("please"), "Supplies restaurant dining phrase");
+  assert(Boolean(res2.useful_phrase?.includes("check") || res2.useful_phrase?.includes("please")), "Supplies restaurant dining phrase");
 
   // TEST 3: Office English (Polite Disagreement)
   const officeReq: MentorChatRequest = {
@@ -62,7 +62,7 @@ async function runTests() {
   };
   const res3 = await mentor.generateMentorTurn(officeReq);
   assert(res3.spoken_response.includes("timeline") || res3.spoken_response.includes("testing") || res3.spoken_response.includes("rollout"), "Office English models diplomatic disagreement");
-  assert(res3.useful_phrase?.includes("alignment") || res3.useful_phrase?.includes("milestones"), "Office English supplies professional workplace phrase");
+  assert(Boolean(res3.useful_phrase?.includes("alignment") || res3.useful_phrase?.includes("milestones")), "Office English supplies professional workplace phrase");
 
   // TEST 4: Topic & Group Discussion Simulator (Challenger role)
   const topicReq: MentorChatRequest = {
@@ -78,7 +78,7 @@ async function runTests() {
   };
   const res4 = await mentor.generateMentorTurn(topicReq);
   assert(res4.spoken_response.includes("risk") || res4.spoken_response.includes("safeguards") || res4.spoken_response.includes("critics"), "Group discussion introduces respectful counter-arguments");
-  assert(res4.useful_phrase?.includes("contrary") || res4.useful_phrase?.includes("merit"), "Provides debate framing phrase");
+  assert(Boolean(res4.useful_phrase?.includes("contrary") || res4.useful_phrase?.includes("merit")), "Provides debate framing phrase");
 
   // TEST 5: Free Conversation Mode
   const freeReq: MentorChatRequest = {

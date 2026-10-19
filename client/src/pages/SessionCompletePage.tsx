@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
@@ -10,18 +10,54 @@ import {
   BookOpen, 
   AlertTriangle, 
   ArrowRight,
-  Share2
+  Share2,
+  FileDown
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
+import { exportNotesToPdf } from '../services/pdfExporter';
+import { SavedNote } from '../types';
 
 export const SessionCompletePage: React.FC = () => {
   const navigate = useNavigate();
   const [isSaved, setIsSaved] = useState(false);
   const [userNotes, setUserNotes] = useState('Need to practice pausing 1-2 seconds before addressing deep system design questions.');
 
+  const [activeNote, setActiveNote] = useState<SavedNote>({
+    id: `note-${Date.now()}`,
+    title: 'Senior Frontend System Design Mock',
+    date: new Date().toISOString().split('T')[0],
+    modeTitle: 'Technical & HR Mock Interview',
+    cefrLevel: 'B2+ (Approaching Fluent)',
+    speakingSpeedWpm: 134,
+    overview: 'In this session, you articulated full-stack micro-frontend architecture tradeoffs, caching strategies with Redis, and team collaboration frameworks.',
+    grammarFeedback: [
+      {
+        original: "I didn't knew how to scale the real-time cache.",
+        correction: "I didn't know how to scale the real-time cache.",
+        explanation: "Did/didn't already carries past tense; always pair with the base infinitive form."
+      }
+    ],
+    naturalAlternatives: [
+      {
+        learnerSaid: "We discuss about the architecture yesterday.",
+        betterAlternative: "We discussed the system architecture in our sync yesterday."
+      }
+    ],
+    newVocabulary: ['Articulate', 'Pragmatic', 'Resilient', 'Throughput'],
+    userNotes: 'Need to practice pausing 1-2 seconds before addressing deep system design questions.'
+  });
+
   const handleSaveNotes = () => {
     setIsSaved(true);
+    // Persist to localStorage
+    const existing = JSON.parse(localStorage.getItem('savedNotesList') || '[]');
+    existing.unshift({ ...activeNote, userNotes });
+    localStorage.setItem('savedNotesList', JSON.stringify(existing));
     setTimeout(() => setIsSaved(false), 3000);
+  };
+
+  const handleExportPdf = () => {
+    exportNotesToPdf({ ...activeNote, userNotes });
   };
 
   const handleExportMarkdown = () => {
@@ -79,7 +115,7 @@ ${userNotes}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Button
               variant="tactile"
               size="md"
@@ -91,10 +127,18 @@ ${userNotes}
             <Button
               variant="outline"
               size="md"
+              onClick={handleExportPdf}
+              icon={<FileDown className="size-4 text-rose-600" />}
+            >
+              Export PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="md"
               onClick={handleExportMarkdown}
               icon={<Download className="size-4" />}
             >
-              Export Markdown
+              Export .MD
             </Button>
           </div>
         </div>

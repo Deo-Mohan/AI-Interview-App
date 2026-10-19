@@ -102,25 +102,23 @@
 
 ## 8. Current Status & Phase Log
 - **Date**: 2026-10-19
-- **Current Phase**: **Phase 3 (Completed & Verified)**
+- **Current Phase**: **Phase 4 (Completed & Verified)**
 - **Completed Work**:
-  - **Structured Schema & Architecture**:
-    - Created validated `MentorResponseSchema` in `server/src/types/mentor.ts` strictly separating `spoken_response` from teaching metadata (`correction`, `natural_alternative`, `brief_explanation`, `useful_phrase`, `recurring_error_tag`, `practice_exercise`, `evaluation`).
-    - Spoken responses are concise (2-4 sentences max) and never read corrections aloud.
-  - **Pedagogical System Prompt & Mode Instructions (`PromptBuilder`)**:
-    - Stable base system prompt enforcing natural everyday spoken English, acknowledging user intent before correcting, and avoiding robotic repetition or excessive praise.
-    - Implemented 5 specialized modes:
-      1. **Interview**: Evaluates technical correctness separately from English fluency; adaptive technical & HR follow-ups; STAR behavioral answer checking.
-      2. **Real-Life Scenarios**: Roleplays realistic dialogue as the other person (shopping, restaurant, airport travel, customer service).
-      3. **Office English**: Teaches workplace diplomacy, status updates, agile meeting leadership, and polite disagreement.
-      4. **Free Conversation**: Open-ended, engaging conversation with natural follow-up questions.
-      5. **Custom Topic / Group Discussion**: Supports moderator and challenger roles, teaching opinion framing, concrete examples, and respectful rebuttals.
-  - **AI Mentor Service (`DefaultAIMentorService`) & API**:
-    - Supports live OpenAI LLM streaming structured output as well as a zero-cost Pedagogical Rule Engine for instant offline/mock execution.
-    - Added `/api/conversation/mentor-turn` endpoint in Express server.
-  - **Unit Testing**:
-    - Implemented unit test suite in `server/src/test-modes.ts` testing all 5 modes, grammar error traps, conversation-only mode suppression, and clean spoken responses (14/14 tests passing).
-  - **Client Integration**:
-    - Updated `useConversationEngine` in client to send mode context and preferences to `/api/conversation/mentor-turn`.
-    - Client production build verified cleanly with zero errors.
-- **Next Step**: Await user approval to proceed to **Phase 4: 3D Human-like Avatar Engine (Three.js / React Three Fiber) & Audio Visualizer Engine**.
+  - **A. Generate Notes & Export System**:
+    - Created `NotesGeneratorService` in `server/src/services/notesGeneratorService.ts` to transform finalized session transcripts into structured lesson notes.
+    - Notes faithfully extract session summary, speaking speed (WPM), CEFR rating, grammar corrections with linguistic rule explanations, natural alternatives, vocabulary highlights, and structured exercises.
+    - Implemented client-side formatted PDF export via `jspdf` (`client/src/services/pdfExporter.ts`) matching the EventLooped visual design.
+    - Implemented Markdown (`.md`) export and local persistence to prevent duplicate records upon regeneration.
+  - **B. Dictionary Integration & Fallbacks**:
+    - Built `FreeDictionaryApiAdapter` in `server/src/services/dictionaryAdapter.ts` supporting definition retrieval, IPA phonetics, parts of speech, and audio pronunciation links.
+    - Added synthetic AI-generated sentence generator ensuring every word includes 3 high-impact context examples even when external APIs lack examples.
+    - Added fallback database for high-yield vocabulary.
+  - **C. Daily Vocabulary & Timezone Boundaries**:
+    - Built `DailyVocabularyService` supporting any positive daily limit (1, 2, 5, 6, 10+ words) across beginner, intermediate, and advanced levels.
+    - Supports specialized categories: Everyday English, Office English, Interview Vocabulary, and Mixed.
+    - Daily assignments remain completely stable across page refreshes using timezone date hashing (`Intl.DateTimeFormat`).
+    - Excludes previously assigned or mastered words to prevent duplicate assignments.
+  - **Testing & Verification**:
+    - Automated unit test suite `server/src/test-phase4.ts` passing 16/16 tests covering dictionary lookups, synthetic fallbacks, arbitrary daily limits, duplicate exclusion, and notes generation.
+    - Client and server production builds pass cleanly (`npm run build`).
+- **Next Step**: Await user approval to proceed to **Phase 5: 3D Human-like Avatar Engine (Three.js / React Three Fiber) & Web Audio Frequency Visualizer**.
