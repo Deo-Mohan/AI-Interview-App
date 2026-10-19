@@ -143,22 +143,6 @@ export const TalkingAvatarIntegration: React.FC<TalkingAvatarIntegrationProps> =
 
       {/* Direct DOM mount point for TalkingAvatar canvas */}
       <div ref={containerRef} className="w-full h-full flex items-center justify-center" />
-
-      {/* Floating State Badge */}
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-        <Badge variant={
-          state === 'speaking' ? 'blue' :
-          state === 'listening' ? 'emerald' :
-          state === 'processing' ? 'amber' : 'slate'
-        } size="sm" dot>
-          {state === 'speaking' ? 'Interviewer Speaking' :
-           state === 'listening' ? 'Listening Attentively' :
-           state === 'processing' ? 'Evaluating Answer' : 'Ready'}
-        </Badge>
-        <span className="text-[10px] text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">
-          talking-avatar.dev SDK
-        </span>
-      </div>
     </div>
   );
 };

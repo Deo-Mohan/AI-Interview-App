@@ -494,26 +494,14 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
         </div>
       )}
 
-      {/* Top Right Controls & Attribution */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-        <a
-          href="https://talking-avatar.dev/free-talking-avatar"
-          target="_blank"
-          rel="noreferrer"
-          className="text-[10px] text-slate-400 hover:text-slate-200 bg-slate-900/80 backdrop-blur-sm px-2.5 py-1 rounded-md border border-slate-800 flex items-center gap-1 transition"
-          title="Realistic 3D Human Avatar (talking-avatar.dev)"
-        >
-          Model: {mentorName} (3D) <ExternalLink className="size-2.5" />
-        </a>
-
-        <button
-          onClick={() => setIs2DFallbackEnabled(true)}
-          className="text-[10px] text-slate-300 hover:text-white bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-700 flex items-center gap-1 transition cursor-pointer"
-          title="Switch to lightweight 2D avatar for lower power consumption"
-        >
-          <EyeOff className="size-3" /> 2D Mode
-        </button>
-      </div>
+      {/* Subtle 2D Mode Toggle in bottom right */}
+      <button
+        onClick={() => setIs2DFallbackEnabled(true)}
+        className="absolute bottom-3 right-3 z-10 text-[10px] text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-sm p-1.5 rounded-lg border border-slate-800 transition cursor-pointer"
+        title="Switch to lightweight 2D avatar mode"
+      >
+        <EyeOff className="size-3.5" />
+      </button>
     </div>
   );
 };
