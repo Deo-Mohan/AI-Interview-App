@@ -1,36 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { TalkingAvatar } from '@interviewflowai/talking-avatar';
 import { ConversationState } from '../types/engine';
-import { AlertCircle, Sparkles, RefreshCw } from 'lucide-react';
+import { AlertCircle, Sparkles } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
-import { AvatarSkeletonShimmer } from './AvatarSkeletonShimmer';
-import { Badge } from './ui';
-
-export const SKY_MORPH_TARGET_MAP: Record<string, string> = {
-  viseme_aa: 'aa',
-  viseme_E: 'E',
-  viseme_I: 'ih',
-  viseme_O: 'oh',
-  viseme_U: 'ou',
-  viseme_PP: 'PP',
-  viseme_FF: 'FF',
-  viseme_TH: 'TH',
-  viseme_DD: 'DD',
-  viseme_kk: 'kk',
-  viseme_CH: 'CH',
-  viseme_SS: 'SS',
-  viseme_nn: 'nn',
-  viseme_RR: 'RR',
-  viseme_sil: 'sil',
-  eyeBlinkLeft: 'eyeBlinkLeft',
-  eyeBlinkRight: 'eyeBlinkRight',
-  browInnerUp: 'browInnerUp',
-  jawOpen: 'jawOpen',
-  mouthFunnel: 'mouthFunnel',
-  mouthPucker: 'mouthPucker',
-  mouthRollLower: 'mouthRollLower',
-  mouthClose: 'mouthClose'
-};
+import { AvatarLoadingIndicator } from './AvatarLoadingIndicator';
+import { speechEventBus } from '../services/speechEvents';
 
 interface TalkingAvatarIntegrationProps {
   state: ConversationState;
@@ -99,8 +73,17 @@ export const TalkingAvatarIntegration: React.FC<TalkingAvatarIntegrationProps> =
       setIsLoading(false);
     }
 
+    // Subscribe to speech events
+    const unsubEnd = speechEventBus.onEnd(() => {
+      if (avatarInstanceRef.current) {
+        avatarInstanceRef.current.stopSpeaking();
+        avatarInstanceRef.current.setStatus('listening');
+      }
+    });
+
     return () => {
       isDisposed = true;
+      unsubEnd();
       if (avatar) {
         avatar.dispose();
       }
@@ -138,7 +121,7 @@ export const TalkingAvatarIntegration: React.FC<TalkingAvatarIntegrationProps> =
     <div className={`relative w-full h-full overflow-hidden rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center ${className}`}>
       <AnimatePresence>
         {isLoading && (
-          <AvatarSkeletonShimmer
+          <AvatarLoadingIndicator
             mentorGender={mentorGender}
             message="Initializing TalkingAvatar SDK..."
           />

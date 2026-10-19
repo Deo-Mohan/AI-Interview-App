@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ConversationState, ConversationMessage } from '../types/engine';
+import { speechEventBus } from '../services/speechEvents';
 import { 
   InterviewStage, 
   QuestionCategory, 
@@ -146,6 +147,7 @@ export function useConversationEngine({
 
   // Stop current audio playback
   const stopAudioPlayback = useCallback(() => {
+    speechEventBus.emitEnd();
     if (synthRef.current) {
       isInterruptedRef.current = true;
       synthRef.current.cancel();
@@ -196,7 +198,24 @@ export function useConversationEngine({
       utterance.voice = voice;
     }
 
+    utterance.onstart = () => {
+      speechEventBus.emitStart();
+    };
+
+    // Track word boundaries in real-time to drive lip-sync visemes
+    utterance.onboundary = (e: SpeechSynthesisEvent) => {
+      if (e.name === 'word') {
+        const charIdx = e.charIndex || 0;
+        const charLen = e.charLength || 5;
+        const word = text.slice(charIdx, charIdx + charLen).trim();
+        if (word) {
+          speechEventBus.emitWordBoundary(word, 280);
+        }
+      }
+    };
+
     utterance.onend = () => {
+      speechEventBus.emitEnd();
       if (!isComponentMounted.current || isInterruptedRef.current) return;
       currentUtteranceRef.current = null;
       setState('listening');
@@ -205,6 +224,7 @@ export function useConversationEngine({
     };
 
     utterance.onerror = (e) => {
+      speechEventBus.emitEnd();
       console.warn('[TTS] Synthesis error or cancellation:', e);
       if (!isComponentMounted.current || isInterruptedRef.current) return;
       currentUtteranceRef.current = null;
@@ -220,6 +240,7 @@ export function useConversationEngine({
   const previewVoice = useCallback((sampleText?: string) => {
     if (!synthRef.current || typeof window === 'undefined') return;
     synthRef.current.cancel();
+    speechEventBus.emitEnd();
 
     const isMale = voiceGenderRef.current === 'male';
     const text = sampleText || (isMale 
@@ -235,6 +256,29 @@ export function useConversationEngine({
     if (voice) {
       utterance.voice = voice;
     }
+
+    utterance.onstart = () => {
+      speechEventBus.emitStart();
+    };
+
+    utterance.onboundary = (e: SpeechSynthesisEvent) => {
+      if (e.name === 'word') {
+        const charIdx = e.charIndex || 0;
+        const charLen = e.charLength || 5;
+        const word = text.slice(charIdx, charIdx + charLen).trim();
+        if (word) {
+          speechEventBus.emitWordBoundary(word, 280);
+        }
+      }
+    };
+
+    utterance.onend = () => {
+      speechEventBus.emitEnd();
+    };
+
+    utterance.onerror = () => {
+      speechEventBus.emitEnd();
+    };
 
     synthRef.current.speak(utterance);
   }, [resolveMentorVoice]);
