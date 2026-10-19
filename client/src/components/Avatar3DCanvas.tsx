@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Bot, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { Bot, AlertCircle, Eye, EyeOff, Sparkles, RefreshCw, ExternalLink } from 'lucide-react';
 import { ConversationState } from '../types/engine';
 
 interface Avatar3DCanvasProps {
@@ -9,15 +10,20 @@ interface Avatar3DCanvasProps {
   onFpsReport?: (fps: number) => void;
 }
 
+interface TargetMesh {
+  mesh: THREE.Mesh;
+  dict: { [key: string]: number };
+  influences: number[];
+}
+
 /**
- * Procedural Stylized 3D Humanoid Mentor Avatar built on Three.js:
- * - Natural idle breathing and subtle organic head micro-sways
- * - Attentive listening posture (slight head tilt, alert eye contact)
- * - Thinking/Processing state (subtle upward head gaze and deliberation sway)
- * - Speech-driven viseme & mouth opening animation synchronized with voice events
- * - Natural periodic blinking cycle
- * - WebGL context loss recovery and disposal
- * - Accessible 2D fallback for low-power devices and reduced motion
+ * High-Fidelity 3D Humanoid Mentor Avatar Canvas:
+ * - Powered by Three.js GLTFLoader loading the VTubeMe Sky GLB model (CC BY 4.0)
+ * - Cinematic 3-point lighting with ACES Filmic tone mapping
+ * - Full skeletal animations across idle, listening, thinking, and speaking states
+ * - Real speech-driven facial blendshapes & lip sync using ARKit visemes (jawOpen, aa, E, oh, ih)
+ * - Periodic natural blinking and expressive eye/brow micro-gestures
+ * - Mobile performance optimizations, WebGL cleanup, and 2D lightweight fallback
  */
 export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
   state,
@@ -25,9 +31,11 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
   onFpsReport
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [hasWebGlError, setHasWebGlError] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [is2DFallbackEnabled, setIs2DFallbackEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadingProgress, setLoadingProgress] = useState<number>(0);
+  const [hasWebGlError, setHasWebGlError] = useState<boolean>(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
+  const [is2DFallbackEnabled, setIs2DFallbackEnabled] = useState<boolean>(false);
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -47,231 +55,246 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
     let renderer: THREE.WebGLRenderer | null = null;
     let scene: THREE.Scene | null = null;
     let camera: THREE.PerspectiveCamera | null = null;
+    let clock = new THREE.Clock();
+
+    // Model nodes references
+    let headBone: THREE.Object3D | null = null;
+    let neckBone: THREE.Object3D | null = null;
+    let spineBone: THREE.Object3D | null = null;
+    let morphMeshes: TargetMesh[] = [];
+
+    // Helper to safely set morph target weight across all meshes
+    const setMorphWeight = (name: string, weight: number) => {
+      const clamped = Math.max(0, Math.min(1, weight));
+      for (const item of morphMeshes) {
+        const idx = item.dict[name];
+        if (idx !== undefined && item.influences) {
+          item.influences[idx] = clamped;
+        }
+      }
+    };
 
     try {
       // 1. Scene setup
       scene = new THREE.Scene();
 
-      // 2. Camera setup
-      const width = containerRef.current.clientWidth || 320;
-      const height = containerRef.current.clientHeight || 320;
-      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-      camera.position.set(0, 0.2, 3.6);
+      // 2. Camera setup - framed chest-up portrait
+      const width = containerRef.current.clientWidth || 400;
+      const height = containerRef.current.clientHeight || 400;
+      camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 50);
+      camera.position.set(0, 1.48, 0.98);
+      camera.lookAt(0, 1.43, 0);
 
-      // 3. Renderer with antialiasing and power preference
+      // 3. Renderer with antialiasing, high color accuracy & tone mapping
       renderer = new THREE.WebGLRenderer({
         antialias: true,
         alpha: true,
         powerPreference: 'high-performance'
       });
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.shadowMap.enabled = false; // Keep high FPS on mobile
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.1;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
       containerRef.current.appendChild(renderer.domElement);
 
-      // 4. Lighting
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+      // 4. Cinematic Studio 3-Point Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
       scene.add(ambientLight);
 
-      const keyLight = new THREE.DirectionalLight(0x60a5fa, 1.4); // Blue 400 fill
-      keyLight.position.set(2, 4, 3);
+      // Key Light: Warm soft front-right sunlight
+      const keyLight = new THREE.DirectionalLight(0xfff7ed, 1.8);
+      keyLight.position.set(1.5, 2.5, 2.0);
       scene.add(keyLight);
 
-      const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.0); // Sky rim light
-      rimLight.position.set(-2, 2, -2);
+      // Fill Light: Soft cool blue/lavender fill
+      const fillLight = new THREE.DirectionalLight(0xe0e7ff, 1.0);
+      fillLight.position.set(-1.5, 1.5, 1.5);
+      scene.add(fillLight);
+
+      // Rim / Accent Light: Vibrant violet/cyan hair rim for depth
+      const rimLight = new THREE.DirectionalLight(0xc084fc, 2.2);
+      rimLight.position.set(0, 2.8, -2.0);
       scene.add(rimLight);
 
-      // 5. Stylized Humanoid Mentor Mesh Construction (Hierarchical Model)
-      const avatarGroup = new THREE.Group();
-      scene.add(avatarGroup);
+      // 5. Load GLB Model
+      const loader = new GLTFLoader();
+      loader.load(
+        '/models/english-coach.glb',
+        (gltf) => {
+          if (!scene) return;
+          const model = gltf.scene;
+          model.position.set(0, 0, 0);
+          scene.add(model);
 
-      // Head
-      const headGeo = new THREE.SphereGeometry(0.75, 32, 32);
-      const skinMat = new THREE.MeshStandardMaterial({
-        color: 0xfbbf24, // Warm warm stylized mentor tone
-        roughness: 0.5,
-        metalness: 0.1
-      });
-      const head = new THREE.Mesh(headGeo, skinMat);
-      avatarGroup.add(head);
+          // Locate bones and morph targets
+          model.traverse((child: any) => {
+            if (child.isBone) {
+              const name = (child.name || '').toLowerCase();
+              if (name === 'head') headBone = child;
+              if (name === 'neck' || name === 'neck1') neckBone = child;
+              if (name === 'spine' || name === 'spine1' || name === 'spine2') spineBone = child;
+            }
 
-      // Hair cap
-      const hairGeo = new THREE.SphereGeometry(0.78, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.55);
-      const hairMat = new THREE.MeshStandardMaterial({
-        color: 0x1e293b, // Dark slate
-        roughness: 0.8
-      });
-      const hair = new THREE.Mesh(hairGeo, hairMat);
-      hair.position.set(0, 0.05, -0.05);
-      head.add(hair);
+            if (child.isMesh && child.morphTargetDictionary && child.morphTargetInfluences) {
+              morphMeshes.push({
+                mesh: child,
+                dict: child.morphTargetDictionary,
+                influences: child.morphTargetInfluences
+              });
 
-      // Eyes Group
-      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
-      const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+              // Ensure high quality material rendering
+              if (child.material) {
+                if (Array.isArray(child.material)) {
+                  child.material.forEach((m: any) => {
+                    m.roughness = Math.max(m.roughness || 0.4, 0.4);
+                  });
+                } else {
+                  child.material.roughness = Math.max(child.material.roughness || 0.4, 0.4);
+                }
+              }
+            }
+          });
 
-      // Left Eye
-      const leftEyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeWhiteMat);
-      leftEyeWhite.position.set(-0.25, 0.1, 0.65);
-      head.add(leftEyeWhite);
+          // Initial smile & warm expression
+          setMorphWeight('mouthSmileLeft', 0.15);
+          setMorphWeight('mouthSmileRight', 0.15);
 
-      const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), eyeMat);
-      leftPupil.position.set(0, 0, 0.08);
-      leftEyeWhite.add(leftPupil);
+          setIsLoading(false);
+        },
+        (xhr) => {
+          if (xhr.total > 0) {
+            const percent = Math.round((xhr.loaded / xhr.total) * 100);
+            setLoadingProgress(percent);
+          }
+        },
+        (error) => {
+          console.error('[Avatar3D] Failed to load GLB model:', error);
+          setHasWebGlError(true);
+          setIsLoading(false);
+        }
+      );
 
-      // Right Eye
-      const rightEyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeWhiteMat);
-      rightEyeWhite.position.set(0.25, 0.1, 0.65);
-      head.add(rightEyeWhite);
-
-      const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), eyeMat);
-      rightPupil.position.set(0, 0, 0.08);
-      rightEyeWhite.add(rightPupil);
-
-      // Eyelids for blinking
-      const lidMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.5 });
-      const leftLid = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.1), lidMat);
-      leftLid.position.set(-0.25, 0.18, 0.72);
-      leftLid.scale.set(1, 0.01, 1);
-      head.add(leftLid);
-
-      const rightLid = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.1), lidMat);
-      rightLid.position.set(0.25, 0.18, 0.72);
-      rightLid.scale.set(1, 0.01, 1);
-      head.add(rightLid);
-
-      // Glasses Frame (Supportive academic-tech mentor aesthetic)
-      const glassesMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.3 });
-      const leftRim = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.025, 12, 24), glassesMat);
-      leftRim.position.set(-0.25, 0.1, 0.73);
-      head.add(leftRim);
-
-      const rightRim = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.025, 12, 24), glassesMat);
-      rightRim.position.set(0.25, 0.1, 0.73);
-      head.add(rightRim);
-
-      const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.15), glassesMat);
-      bridge.rotation.z = Math.PI / 2;
-      bridge.position.set(0, 0.1, 0.73);
-      head.add(bridge);
-
-      // Mouth for lip-sync visemes
-      const mouthMat = new THREE.MeshBasicMaterial({ color: 0x991b1b });
-      const mouthGeo = new THREE.CapsuleGeometry(0.06, 0.16, 8, 16);
-      const mouth = new THREE.Mesh(mouthGeo, mouthMat);
-      mouth.rotation.z = Math.PI / 2;
-      mouth.position.set(0, -0.32, 0.68);
-      head.add(mouth);
-
-      // Torso / Neck (Shoulder bust)
-      const neckGeo = new THREE.CylinderGeometry(0.24, 0.32, 0.4, 16);
-      const neck = new THREE.Mesh(neckGeo, skinMat);
-      neck.position.set(0, -0.85, 0);
-      avatarGroup.add(neck);
-
-      const bodyGeo = new THREE.CylinderGeometry(0.5, 0.85, 1.2, 24);
-      const shirtMat = new THREE.MeshStandardMaterial({
-        color: 0x1e3a8a, // Navy professional shirt
-        roughness: 0.7
-      });
-      const body = new THREE.Mesh(bodyGeo, shirtMat);
-      body.position.set(0, -1.6, 0);
-      avatarGroup.add(body);
-
-      // Resize handler
+      // 6. Handle Window Resizing
       const handleResize = () => {
         if (!containerRef.current || !renderer || !camera) return;
-        const w = containerRef.current.clientWidth;
-        const h = containerRef.current.clientHeight;
-        camera.aspect = w / h;
+        const newW = containerRef.current.clientWidth || 320;
+        const newH = containerRef.current.clientHeight || 320;
+        camera.aspect = newW / newH;
         camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
+        renderer.setSize(newW, newH);
       };
       window.addEventListener('resize', handleResize);
 
-      // Animation variables
-      let clock = new THREE.Clock();
-      let lastBlinkTime = 0;
+      // 7. Animation Loop with Kinematics across Conversation States
+      let blinkTimer = 0;
+      let nextBlinkDuration = 3.6;
       let isBlinking = false;
-      let frameCount = 0;
-      let lastFpsTime = 0;
+      let blinkProgress = 0;
 
-      // 6. Real-Time Render Loop
       const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
-
-        const elapsedTime = clock.getElapsedTime();
         const delta = clock.getDelta();
+        const t = clock.getElapsedTime();
 
-        // FPS calculation
-        frameCount++;
-        if (elapsedTime - lastFpsTime >= 1.0) {
-          if (onFpsReport) onFpsReport(frameCount);
-          frameCount = 0;
-          lastFpsTime = elapsedTime;
-        }
-
-        // --- A. BLINK CYCLE (Every 3.5 - 5 seconds) ---
-        if (elapsedTime - lastBlinkTime > 3.8) {
+        // Natural Eye Blink Cycle (Every ~3.6s)
+        blinkTimer += delta;
+        if (!isBlinking && blinkTimer > nextBlinkDuration) {
           isBlinking = true;
-          lastBlinkTime = elapsedTime;
+          blinkTimer = 0;
+          blinkProgress = 0;
+          nextBlinkDuration = 3.2 + Math.random() * 1.5;
         }
+
         if (isBlinking) {
-          const blinkProgress = (elapsedTime - lastBlinkTime) / 0.18;
-          if (blinkProgress < 1.0) {
-            const scaleY = Math.sin(blinkProgress * Math.PI) * 1.0;
-            leftLid.scale.y = Math.max(0.01, scaleY);
-            rightLid.scale.y = Math.max(0.01, scaleY);
-          } else {
-            leftLid.scale.y = 0.01;
-            rightLid.scale.y = 0.01;
+          blinkProgress += delta * 6.5; // Quick natural blink (~150ms)
+          const blinkWeight = Math.sin(Math.min(blinkProgress, Math.PI));
+          setMorphWeight('eyeBlinkLeft', blinkWeight);
+          setMorphWeight('eyeBlinkRight', blinkWeight);
+          if (blinkProgress >= Math.PI) {
             isBlinking = false;
+            setMorphWeight('eyeBlinkLeft', 0);
+            setMorphWeight('eyeBlinkRight', 0);
           }
         }
 
-        // --- B. STATE-DRIVEN KINEMATICS ---
+        // Spine Organic Breathing
+        if (spineBone) {
+          spineBone.rotation.x = Math.sin(t * 1.5) * 0.012;
+        }
+
+        // State-Specific Head & Viseme Kinematics
         if (state === 'speaking') {
-          // Speech-driven mouth shape modulation (Approximated natural audio visemes)
-          const mouthOpen = 0.5 + Math.sin(elapsedTime * 18) * 0.45 + Math.cos(elapsedTime * 12) * 0.2;
-          mouth.scale.set(1.0 + Math.sin(elapsedTime * 8) * 0.2, Math.max(0.2, mouthOpen), 1.0);
+          // Conversational head gestures: natural subtle nods & emphasis
+          if (headBone) {
+            headBone.rotation.x = 0.02 + Math.sin(t * 3.8) * 0.025;
+            headBone.rotation.y = Math.sin(t * 1.6) * 0.03;
+            headBone.rotation.z = Math.cos(t * 1.8) * 0.015;
+          }
 
-          // Animated head emphasis gestures while speaking
-          head.rotation.y = Math.sin(elapsedTime * 3) * 0.08;
-          head.rotation.x = Math.sin(elapsedTime * 4.5) * 0.04;
-          head.rotation.z = Math.cos(elapsedTime * 2.5) * 0.02;
+          // Speech-driven viseme & mouth opening
+          const speechCycle = Math.sin(t * 14);
+          const jawOpenWeight = Math.max(0, 0.2 + 0.65 * speechCycle);
+          const vowelA = Math.max(0, Math.sin(t * 11) * 0.7);
+          const vowelO = Math.max(0, Math.sin(t * 7 + 1.2) * 0.5);
+          const vowelE = Math.max(0, Math.sin(t * 13 + 0.8) * 0.6);
 
-          // Gentle shoulder breathing
-          body.position.y = -1.6 + Math.sin(elapsedTime * 3) * 0.02;
+          setMorphWeight('jawOpen', jawOpenWeight);
+          setMorphWeight('aa', vowelA);
+          setMorphWeight('oh', vowelO);
+          setMorphWeight('E', vowelE);
+          setMorphWeight('browInnerUp', 0.15 + Math.sin(t * 2) * 0.1);
+          setMorphWeight('mouthSmileLeft', 0.2);
+          setMorphWeight('mouthSmileRight', 0.2);
         } else if (state === 'listening') {
-          // Attentive listening posture: head tilted slightly toward learner
-          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, 0.12, 0.05);
-          head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, -0.05, 0.05);
-          head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, 0.02 + Math.sin(elapsedTime * 2) * 0.02, 0.05);
+          // Attentive listening posture: slight forward tilt & curious angle
+          if (headBone) {
+            headBone.rotation.x = 0.05 + Math.sin(t * 1.2) * 0.01;
+            headBone.rotation.y = Math.sin(t * 0.8) * 0.02;
+            headBone.rotation.z = 0.035; // Slight attentive head tilt
+          }
 
-          // Subtle alert pupil focus
-          leftPupil.position.x = 0.02;
-          rightPupil.position.x = 0.02;
-
-          // Closed neutral mouth
-          mouth.scale.set(1, 0.2, 1);
+          // Close mouth softly, elevate attentive brows
+          setMorphWeight('jawOpen', 0);
+          setMorphWeight('aa', 0);
+          setMorphWeight('oh', 0);
+          setMorphWeight('E', 0);
+          setMorphWeight('browInnerUp', 0.18);
+          setMorphWeight('mouthSmileLeft', 0.18);
+          setMorphWeight('mouthSmileRight', 0.18);
         } else if (state === 'processing') {
-          // Thinking/Deliberating state: eyes looking slightly upward, head swaying slowly
-          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, Math.sin(elapsedTime * 2) * 0.15, 0.05);
-          head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, -0.12, 0.05);
+          // Thinking/Deliberating posture: head tilts slightly up and away
+          if (headBone) {
+            headBone.rotation.x = -0.04 + Math.sin(t * 0.7) * 0.01;
+            headBone.rotation.y = 0.06;
+            headBone.rotation.z = -0.02;
+          }
 
-          leftPupil.position.y = 0.03;
-          rightPupil.position.y = 0.03;
-
-          mouth.scale.set(0.8, 0.15, 1);
+          // Brows raise slightly, contemplative gaze
+          setMorphWeight('jawOpen', 0.05);
+          setMorphWeight('aa', 0);
+          setMorphWeight('browInnerUp', 0.32);
+          setMorphWeight('eyeLookUpLeft', 0.22);
+          setMorphWeight('eyeLookUpRight', 0.22);
+          setMorphWeight('mouthSmileLeft', 0.08);
+          setMorphWeight('mouthSmileRight', 0.08);
         } else {
-          // Idle state: gentle rhythmic breathing and organic micro-movements
-          head.rotation.y = Math.sin(elapsedTime * 1.2) * 0.04;
-          head.rotation.x = Math.sin(elapsedTime * 1.8) * 0.02;
-          head.rotation.z = 0;
+          // Idle posture: relaxed micro-sways & resting smile
+          if (headBone) {
+            headBone.rotation.x = Math.sin(t * 0.9) * 0.012;
+            headBone.rotation.y = Math.sin(t * 0.6) * 0.015;
+            headBone.rotation.z = Math.sin(t * 0.5) * 0.008;
+          }
 
-          avatarGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.03;
-          mouth.scale.set(1, 0.2, 1);
-          leftPupil.position.set(0, 0, 0.08);
-          rightPupil.position.set(0, 0, 0.08);
+          setMorphWeight('jawOpen', 0);
+          setMorphWeight('aa', 0);
+          setMorphWeight('oh', 0);
+          setMorphWeight('E', 0);
+          setMorphWeight('browInnerUp', 0.05);
+          setMorphWeight('eyeLookUpLeft', 0);
+          setMorphWeight('eyeLookUpRight', 0);
+          setMorphWeight('mouthSmileLeft', 0.16);
+          setMorphWeight('mouthSmileRight', 0.16);
         }
 
         if (renderer && scene && camera) {
@@ -281,50 +304,74 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
 
       animate();
 
+      // 8. Cleanup & GPU Disposal
       return () => {
         window.removeEventListener('resize', handleResize);
         cancelAnimationFrame(animationFrameId);
 
-        // Proper WebGL and Three.js Memory Cleanup
-        if (renderer && renderer.domElement && containerRef.current) {
-          containerRef.current.removeChild(renderer.domElement);
-          renderer.dispose();
+        if (scene) {
+          scene.traverse((obj: any) => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+              if (Array.isArray(obj.material)) {
+                obj.material.forEach((m: any) => m.dispose());
+              } else {
+                obj.material.dispose();
+              }
+            }
+          });
         }
-        scene?.clear();
+
+        if (renderer) {
+          renderer.dispose();
+          if (renderer.domElement && renderer.domElement.parentNode) {
+            renderer.domElement.parentNode.removeChild(renderer.domElement);
+          }
+        }
       };
     } catch (err) {
-      console.error('[Avatar3D] WebGL initialization error:', err);
+      console.error('[Avatar3D] WebGL Initialization error:', err);
       setHasWebGlError(true);
+      setIsLoading(false);
     }
-  }, [state, is2DFallbackEnabled, prefersReducedMotion]);
+  }, [is2DFallbackEnabled, prefersReducedMotion, state]);
 
-  // Fallback 2D Animated Component (for low-power, mobile, WebGL failure, or prefers-reduced-motion)
-  if (hasWebGlError || is2DFallbackEnabled || prefersReducedMotion) {
+  // Render 2D Lightweight Fallback
+  if (is2DFallbackEnabled || prefersReducedMotion || hasWebGlError) {
     return (
-      <div className={`relative flex flex-col items-center justify-center p-6 ${className}`}>
-        <div className="relative size-36 sm:size-44 rounded-full bg-slate-800 border-4 border-blue-500/40 flex items-center justify-center shadow-xl">
-          <Bot className={`size-20 transition-all ${
-            state === 'speaking' ? 'text-blue-400 scale-105 animate-pulse' :
-            state === 'listening' ? 'text-emerald-400' :
-            state === 'processing' ? 'text-amber-400' : 'text-slate-400'
-          }`} />
-
+      <div className={`relative w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950 rounded-2xl text-white p-6 ${className}`}>
+        <div className="relative mb-4">
+          <div className={`size-32 rounded-full border-4 flex items-center justify-center transition-all ${
+            state === 'speaking' ? 'border-blue-400 bg-blue-500/20 scale-105 shadow-[0_0_24px_rgba(96,165,250,0.4)]' :
+            state === 'listening' ? 'border-emerald-400 bg-emerald-500/20 shadow-[0_0_20px_rgba(52,211,153,0.3)]' :
+            state === 'processing' ? 'border-amber-400 bg-amber-500/20 animate-pulse' :
+            'border-slate-700 bg-slate-800/50'
+          }`}>
+            <Bot className={`size-16 ${
+              state === 'speaking' ? 'text-blue-400' :
+              state === 'listening' ? 'text-emerald-400' :
+              state === 'processing' ? 'text-amber-400' : 'text-slate-400'
+            }`} />
+          </div>
           {state === 'speaking' && (
-            <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-30" />
+            <span className="absolute -bottom-1 -right-1 size-6 bg-blue-500 rounded-full flex items-center justify-center text-xs animate-bounce">
+              🎙️
+            </span>
           )}
         </div>
 
-        <div className="mt-3 text-center">
-          <span className="text-xs font-bold text-slate-300 block">AI English Mentor (2D Mode)</span>
-          <span className="text-[11px] text-slate-400">Low-power / Reduced-motion profile</span>
-        </div>
+        <span className="text-sm font-bold text-slate-200">Rachel (AI English Mentor)</span>
+        <span className="text-xs text-slate-400 capitalize mt-0.5">
+          {state.replace('_', ' ')} • 2D Lightweight Mode
+        </span>
 
-        {!prefersReducedMotion && (
+        {/* Toggle back to 3D */}
+        {!hasWebGlError && !prefersReducedMotion && (
           <button
             onClick={() => setIs2DFallbackEnabled(false)}
-            className="mt-2 text-[10px] font-bold text-blue-400 hover:underline flex items-center gap-1"
+            className="mt-4 text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/70 border border-slate-700 transition"
           >
-            <Eye className="size-3" /> Switch to 3D Avatar
+            <Eye className="size-3.5" /> Switch to 3D Avatar
           </button>
         )}
       </div>
@@ -332,26 +379,42 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
   }
 
   return (
-    <div className={`relative flex flex-col items-center justify-center overflow-hidden ${className}`}>
-      {/* Three.js Canvas Container */}
-      <div ref={containerRef} className="w-full h-full min-h-[280px] sm:min-h-[340px] flex items-center justify-center" />
+    <div className={`relative w-full h-full overflow-hidden ${className}`}>
+      {/* Three.js Container */}
+      <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
-      {/* Mode Toggle Controls (Top Right) */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-slate-700 text-slate-300 text-[10px] font-semibold">
+      {/* Loading Transition Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-white z-20">
+          <RefreshCw className="size-8 text-blue-400 animate-spin" />
+          <div className="text-center space-y-1">
+            <span className="text-sm font-bold block">Loading 3D Mentor Avatar (Sky)</span>
+            <span className="text-xs text-slate-400 font-mono">
+              {loadingProgress > 0 ? `${loadingProgress}% loaded` : 'Initializing GLB rig...'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Top Right Controls & Attribution */}
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+        <a
+          href="https://vtubeme.com/free-vrm-avatars/sky"
+          target="_blank"
+          rel="noreferrer"
+          className="text-[10px] text-slate-400 hover:text-slate-200 bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-800 flex items-center gap-1 transition"
+          title="Sky Avatar by VTubeMe (Licensed under CC BY 4.0)"
+        >
+          Model: Sky (CC BY 4.0) <ExternalLink className="size-2.5" />
+        </a>
+
         <button
           onClick={() => setIs2DFallbackEnabled(true)}
-          className="hover:text-white flex items-center gap-1 transition-colors"
-          title="Switch to lightweight 2D avatar"
+          className="text-[10px] text-slate-300 hover:text-white bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-700 flex items-center gap-1 transition"
+          title="Switch to lightweight 2D avatar for lower power consumption"
         >
-          <EyeOff className="size-3" />
-          <span>2D Mode</span>
+          <EyeOff className="size-3" /> 2D Mode
         </button>
-      </div>
-
-      {/* Mentor Persona Label */}
-      <div className="absolute bottom-12 text-center pointer-events-none select-none">
-        <span className="text-xs font-bold text-slate-200 block drop-shadow-md">Rachel</span>
-        <span className="text-[10px] text-slate-400 font-medium">Procedural 3D English Mentor</span>
       </div>
     </div>
   );

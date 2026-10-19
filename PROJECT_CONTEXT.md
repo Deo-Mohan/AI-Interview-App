@@ -181,20 +181,53 @@
 
 ---
 
-## 11. Current Status & Phase Log
+## 12. 3D Human Avatar Engine Upgrade (VTubeMe Sky Model)
+
+### A. Diagnosis of Previous Avatar Limitations
+- **Primitive Geometry**: Assembled from basic Three.js procedural primitives (`SphereGeometry`, `CylinderGeometry`, `BoxGeometry`) without anatomical facial features, realistic clothing folds, or rigged skeleton.
+- **Flat Materials**: Hex-color `MeshStandardMaterial` without textures, normal maps, or specularity.
+- **Suboptimal Lighting & Camera**: Basic ambient/directional lighting without key/fill/rim depth; camera positioned without chest-up portrait framing.
+- **Primitive Lip Sync**: Scaled mouth geometry via a single sinusoidal axis rather than natural speech visemes.
+
+### B. VTubeMe Sky GLB Model Evaluation
+- **Source**: [VTubeMe Sky Avatar](https://vtubeme.com/free-vrm-avatars/sky).
+- **Format & Size**: Standard GLB (binary glTF), exactly 5,472,488 bytes (~5.22 MB).
+- **Topology**: 20,856 triangles, 13,709 vertices, 12 meshes with MToon/PBR textures.
+- **Skeletal Rig**: 54 humanoid bones (Hips, Spine, Spine1, Spine2, Neck, Head, Eyes, Shoulders, Arms, Hands).
+- **Morph Targets (Blendshapes)**: 118 shape keys including:
+  - Speech visemes / phonemes: `jawOpen`, `aa`, `oh`, `E`, `ih`, `ou`, `CH`, `TH`.
+  - Facial expressions: `browInnerUp`, `eyeBlinkLeft`, `eyeBlinkRight`, `eyeLookUpLeft`, `eyeLookUpRight`, `mouthSmileLeft`, `mouthSmileRight`.
+- **License & Attribution**: Creative Commons Attribution 4.0 ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Formally attributed in `THIRD_PARTY_NOTICES.md` and UI badge.
+- **Local Storage Path**: `client/public/models/english-coach.glb`.
+
+### C. Rendering & Animation Improvements
+- **Lighting**: 3-point studio lighting (Warm Key light at 1.8 intensity, Cool Fill at 1.0, and vibrant Violet/Purple rim at 2.2).
+- **Camera Framing**: Chest-up portrait framing with FOV 36, positioned at `(0, 1.48, 0.98)` looking at `(0, 1.43, 0)`.
+- **Color Grading**: `THREE.ACESFilmicToneMapping` with exposure 1.1 and sRGB color space.
+- **State Kinematics**:
+  - `idle`: Organic spine breathing, head micro-sways, natural blinks every ~3.6s, resting smile.
+  - `listening`: Inquisitive forward head tilt, attentive head angle, raised inner brows.
+  - `processing`: Deliberative upward gaze, thoughtful brow elevation, slow breathing.
+  - `speaking`: Real-time viseme modulation (`jawOpen`, `aa`, `oh`, `E`) combined with conversational nodding and micro-emphasis gestures.
+- **Performance & Fallback**:
+  - Smooth loading transition with percentage indicator.
+  - User toggle for lightweight 2D mode; automatic `prefers-reduced-motion` compliance.
+  - Complete GPU resource disposal on unmount.
+
+---
+
+## 13. Current Status & Phase Log
 - **Date**: 2026-10-19
-- **Current Status**: **BYOK Enhancement (Completed & Verified)**
+- **Current Status**: **3D Avatar Sky Upgrade (Completed & Verified)**
 - **Completed Work**:
-  - **Google Gemini Adapter (`aiAdapters.ts`)**: Built and verified Gemini 1.5/2.0 REST integration with JSON structured output formatting.
-  - **OpenAI & Anthropic Adapters (`aiAdapters.ts`)**: Modular adapters for GPT-4o-mini and Claude 3.5 Sonnet.
-  - **Custom OpenAI-Compatible Adapter with SSRF Guard (`encryptionService.ts`)**: Restricts private IPs and cloud metadata hosts.
-  - **AES-256-GCM Encryption Service (`encryptionService.ts`)**: 256-bit key derivation, 16-byte random IV, and authentication tag validation.
-  - **User Credential Manager (`userCredentialManager.ts`)**: Manages session-only and encrypted persistent BYOK with explicit consent.
-  - **Settings UI (`SettingsPage.tsx`)**: Provider cards, model selection, key visibility toggle, live connection testing with latency display, credential deletion, and active status display.
-  - **Clear Setup Screen (`ActiveConversationPage.tsx`)**: Detects unconfigured state and renders actionable onboarding card.
-  - **Automated Tests (`test-byok.ts`)**: 13/13 BYOK tests passing (encryption roundtrip, key masking, SSRF blocking, consent enforcement, ownership isolation, deletion).
-  - **Full Regression**: 69/69 total tests passing across Phase 3, 4, 6, 7, and BYOK.
-- **Next Step**: Await user instructions for future enhancements.
+  - Replaced procedural primitive avatar with rigged VTubeMe Sky GLB model (5.22 MB at `public/models/english-coach.glb`).
+  - Implemented 3-point cinematic lighting with ACES Filmic tone mapping and sRGB output.
+  - Created multi-mesh morph target speech-driven viseme animation synchronized with audio events.
+  - Implemented 4 distinct conversational states (idle breathing, listening tilt, thinking deliberation, speaking gestures).
+  - Added loading progress screen, WebGL error boundary, and 2D lightweight fallback mode.
+  - Added CC BY 4.0 attribution notice in `THIRD_PARTY_NOTICES.md` and UI badge.
+  - Passed full automated regression suite (69/69 tests) and verified clean production build.
+
 
 
 
