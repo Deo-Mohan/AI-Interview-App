@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Mic, 
@@ -20,6 +20,7 @@ import {
 import { Button, Card, Badge } from '../components/ui';
 import { Avatar3DCanvas } from '../components/Avatar3DCanvas';
 import { useConversationEngine } from '../hooks/useConversationEngine';
+import { Key, ShieldCheck } from 'lucide-react';
 
 export const ActiveConversationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,21 @@ export const ActiveConversationPage: React.FC = () => {
   const modeParam = searchParams.get('mode') || 'free-conversation';
 
   const transcriptBottomRef = useRef<HTMLDivElement>(null);
+  const [hasCheckedCreds, setHasCheckedCreds] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(true);
+
+  // Check if AI provider credentials are configured
+  useEffect(() => {
+    fetch('http://localhost:5000/api/credentials/status')
+      .then(r => r.json())
+      .then(data => {
+        setIsConfigured(Boolean(data.isConfigured));
+        setHasCheckedCreds(true);
+      })
+      .catch(() => {
+        setHasCheckedCreds(true);
+      });
+  }, []);
 
   // Initialize Conversation Engine
   const {
@@ -82,6 +98,59 @@ export const ActiveConversationPage: React.FC = () => {
         return <Badge variant="rose" size="sm" dot>Connection Failed</Badge>;
     }
   };
+
+  // Clear setup screen when no AI provider is configured
+  if (hasCheckedCreds && !isConfigured) {
+    return (
+      <div className="max-w-xl mx-auto py-12 px-4 space-y-6">
+        <Card variant="default" className="text-center p-8 space-y-5 border-slate-200">
+          <div className="size-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-inner border border-blue-100">
+            <Key className="size-8" />
+          </div>
+
+          <div className="space-y-2">
+            <Badge variant="blue" size="sm">Setup Required</Badge>
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              Connect Your AI Provider to Begin Speaking
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed max-w-md mx-auto">
+              This application is designed with a strict zero-developer-key architecture. To converse with Rachel in real-time, please configure your personal Google Gemini, OpenAI, or Anthropic API key.
+            </p>
+          </div>
+
+          <div className="bg-slate-50 rounded-xl p-4 text-left border border-slate-100 space-y-2 text-xs text-slate-600">
+            <div className="flex items-center gap-2 text-slate-900 font-bold">
+              <ShieldCheck className="size-4 text-emerald-600" />
+              <span>Security & Privacy Guarantee</span>
+            </div>
+            <ul className="list-disc pl-4 space-y-1 text-slate-500">
+              <li>Keys are never saved in localStorage or exposed to the browser.</li>
+              <li>Encrypted server-side using military-grade AES-256-GCM.</li>
+              <li>Free-tier options available with Google Gemini (recommended).</li>
+            </ul>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button
+              variant="tactile"
+              size="lg"
+              onClick={() => navigate('/settings')}
+              icon={<ArrowRight className="size-4" />}
+            >
+              Configure AI Provider in Settings
+            </Button>
+            <Button
+              variant="ghost"
+              size="md"
+              onClick={() => { setIsConfigured(true); }}
+            >
+              Continue with Offline Heuristics
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-6rem)] flex flex-col gap-4 animate-fade-in">

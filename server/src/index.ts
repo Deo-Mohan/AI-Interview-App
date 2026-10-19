@@ -230,6 +230,82 @@ app.delete('/api/user/data', requireAuth, async (req: AuthenticatedRequest, res:
   }
 });
 
+// Credentials Management Endpoints (BYOK Architecture)
+import { UserCredentialManager } from './services/userCredentialManager.js';
+
+// Test connection to AI provider
+app.post('/api/credentials/test', async (req: Request, res: Response) => {
+  try {
+    const { provider, apiKey, model, customEndpoint } = req.body;
+    if (!provider || !apiKey || !model) {
+      return res.status(400).json({ error: 'Provider, apiKey, and model are required.' });
+    }
+    const result = await UserCredentialManager.testConnection({ provider, apiKey, model, customEndpoint });
+    return res.json(result);
+  } catch (err: any) {
+    SecretRedactor.log('WARN', 'Credential connection test failed', { error: err.message });
+    return res.status(400).json({
+      ok: false,
+      error: 'Connection test failed',
+      message: SecretRedactor.redactString(err.message)
+    });
+  }
+});
+
+// Save or replace user credentials (with session or AES-256-GCM persistent storage)
+app.post('/api/credentials/save', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { provider, apiKey, model, customEndpoint, persistenceType, consentToStore } = req.body;
+    const metadata = await UserCredentialManager.saveCredential(userId, {
+      provider,
+      apiKey,
+      model,
+      customEndpoint,
+      persistenceType: persistenceType || 'session_only',
+      consentToStore: !!consentToStore
+    });
+    return res.json({ success: true, metadata });
+  } catch (err: any) {
+    SecretRedactor.log('ERROR', 'Save credentials failed', { error: err.message });
+    return res.status(400).json({
+      error: 'Failed to save credentials',
+      message: SecretRedactor.redactString(err.message)
+    });
+  }
+});
+
+// Get user credential status (Metadata ONLY - Never returns secret keys or ciphertexts)
+app.get('/api/credentials/status', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const metadata = await UserCredentialManager.getCredentialMetadata(userId);
+    return res.json({
+      isConfigured: !!metadata,
+      metadata: metadata || null
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to get credentials status', message: SecretRedactor.redactString(err.message) });
+  }
+});
+
+// Delete user credentials permanently
+app.delete('/api/credentials', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    await UserCredentialManager.deleteCredential(userId);
+    return res.json({ success: true, message: 'API credentials permanently removed.' });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to delete credentials', message: SecretRedactor.redactString(err.message) });
+  }
+});
+
 // Full Pedagogical AI Mentor Endpoint (Protected by Circuit Breaker & Rate Limiter)
 app.post('/api/conversation/mentor-turn', mentorTurnLimiter, async (req: Request, res: Response) => {
   try {
@@ -241,7 +317,20 @@ app.post('/api/conversation/mentor-turn', mentorTurnLimiter, async (req: Request
       });
     }
 
-    const mentorResponse = await mentorService.generateMentorTurn(parseResult.data);
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id || 'demo-learner-001';
+    const userCredentials = await UserCredentialManager.getResolvedCredential(userId);
+
+    // If no provider is configured, do not silently use an application-owned key!
+    if (!userCredentials && !openAiKey) {
+      return res.status(412).json({
+        error: 'NO_AI_PROVIDER_CONFIGURED',
+        message: 'No AI provider credentials configured. Please configure your Google Gemini, OpenAI, or Anthropic API key in Settings.',
+        setupRequired: true
+      });
+    }
+
+    const mentorResponse = await mentorService.generateMentorTurn(parseResult.data, userCredentials || undefined);
     return res.json(mentorResponse);
   } catch (error: any) {
     SecretRedactor.log('ERROR', 'Mentor turn generation failed', { error: error.message });

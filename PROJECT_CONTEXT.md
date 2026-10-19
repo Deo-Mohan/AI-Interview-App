@@ -145,26 +145,56 @@
 
 ---
 
-## 9. Current Status & Phase Log
+## 10. User-Owned AI Providers & BYOK Architecture
+
+### A. Core Architectural Principles
+1. **Zero Hardcoded Developer Keys**:
+   - The application does not ship with or silently use application-owned developer keys.
+   - Users configure their own provider credentials directly in the Settings interface.
+2. **Supported AI Providers & Adapters**:
+   - **Google Gemini**: Models `gemini-1.5-flash` (recommended for zero-cost conversational latency), `gemini-1.5-pro`, `gemini-2.0-flash`.
+   - **OpenAI**: Models `gpt-4o-mini` (recommended), `gpt-4o`, `gpt-3.5-turbo`.
+   - **Anthropic Claude**: Models `claude-3-5-sonnet-20241022` (highest nuance ESL coaching), `claude-3-5-haiku-20241022`.
+   - **Custom OpenAI-Compatible**: Support for Groq, Together, DeepSeek, or vLLM endpoints with verified SSRF safeguards.
+3. **Storage & Encryption Security**:
+   - **Zero Client Secrets**: Keys are never stored in browser `localStorage`, session cookies, or client-side bundles.
+   - **Session-Only Option**: Temporary in-memory backend registration, automatically discarded when the session ends.
+   - **Persistent BYOK Option**: Encrypted server-side using **AES-256-GCM** with a master `ENCRYPTION_SECRET`, stored in `public.user_ai_credentials` with strict Row Level Security (`auth.uid() = user_id`). Explicit user consent is mandatory prior to persistent storage.
+   - **Masked Metadata Only**: API status endpoints return metadata only (`...a1b2`, model, status, latency), never plaintext secrets or ciphertexts.
+   - **SSRF Guard**: Custom endpoint URLs are restricted; private network ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `localhost`, and internal metadata services) are rejected.
+4. **Runtime Resolution & Setup Screen**:
+   - Every conversational turn dynamically resolves the active user's credentials.
+   - When no AI provider is configured, the `/conversation` page displays a clear, actionable setup card with a direct link to `/settings`, preventing silent fallback to unauthorized application keys.
+
+### B. User Setup Steps
+1. **Obtain API Key**:
+   - Google Gemini (Free tier): [Google AI Studio](https://aistudio.google.com/app/apikey)
+   - OpenAI: [OpenAI Platform](https://platform.openai.com/api-keys)
+   - Anthropic: [Anthropic Console](https://console.anthropic.com/)
+2. **Configure in Settings**:
+   - Navigate to `/settings` in the application sidebar.
+   - Select your desired provider and model.
+   - Paste your secret key and click **Test Connection** to verify API validity and network round-trip latency.
+   - Choose your storage preference (Session Only vs Server-Encrypted Persistent) and save.
+3. **Practice**:
+   - Navigate to `/conversation` or choose any mode in `/modes` to engage in real-time voice practice with Rachel.
+
+---
+
+## 11. Current Status & Phase Log
 - **Date**: 2026-10-19
-- **Current Phase**: **Phase 7 (Completed & Verified)**
+- **Current Status**: **BYOK Enhancement (Completed & Verified)**
 - **Completed Work**:
-  - **Secret Redaction & Log Hardening (`secretRedactor.ts`)**:
-    - Created comprehensive redactor masking API keys, JWT tokens, Bearer headers, and sensitive object fields across all server logs and error responses.
-  - **Request Tracing & Security Headers (`requestId.ts`)**:
-    - Distributed `X-Request-Id` tracing middleware and security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`).
-  - **Sliding-Window Rate Limiting (`rateLimiter.ts`)**:
-    - In-memory rate limiting with standard RFC headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `Retry-After`).
-  - **Provider Management & Circuit Breakers (`providerManager.ts`)**:
-    - 3-state circuit breaker (`CLOSED`, `OPEN`, `HALF_OPEN`), quota vs rate-limit distinction, exponential backoff with full jitter, real-time metrics tracking (latency, token count, estimated cost), and automatic failover.
-  - **Non-Idempotent Duplicate Suppression (`idempotencyService.ts`)**:
-    - Idempotency middleware preventing duplicate note generations and database writes.
-  - **Data Retention & Privacy Erasure (`dataRetentionService.ts`)**:
-    - Right-to-erasure endpoint (`DELETE /api/user/data`) and defined data retention windows.
-  - **Testing & Verification (`test-phase7.ts`)**:
-    - 13/13 Phase 7 tests passing (outages, circuit breakers, rate limits, quota exhaustion, 401 invalid keys, secret redaction, idempotency).
-    - Full regression suite passing: 56 total tests across Phase 3, Phase 4, Phase 6, and Phase 7 with 0 failures.
-    - Clean production frontend build (`npm run build`).
-- **Next Step**: Await user instructions to proceed to **Phase 8: Production Polish, Audio Buffering Optimization & Deployment Readiness**.
+  - **Google Gemini Adapter (`aiAdapters.ts`)**: Built and verified Gemini 1.5/2.0 REST integration with JSON structured output formatting.
+  - **OpenAI & Anthropic Adapters (`aiAdapters.ts`)**: Modular adapters for GPT-4o-mini and Claude 3.5 Sonnet.
+  - **Custom OpenAI-Compatible Adapter with SSRF Guard (`encryptionService.ts`)**: Restricts private IPs and cloud metadata hosts.
+  - **AES-256-GCM Encryption Service (`encryptionService.ts`)**: 256-bit key derivation, 16-byte random IV, and authentication tag validation.
+  - **User Credential Manager (`userCredentialManager.ts`)**: Manages session-only and encrypted persistent BYOK with explicit consent.
+  - **Settings UI (`SettingsPage.tsx`)**: Provider cards, model selection, key visibility toggle, live connection testing with latency display, credential deletion, and active status display.
+  - **Clear Setup Screen (`ActiveConversationPage.tsx`)**: Detects unconfigured state and renders actionable onboarding card.
+  - **Automated Tests (`test-byok.ts`)**: 13/13 BYOK tests passing (encryption roundtrip, key masking, SSRF blocking, consent enforcement, ownership isolation, deletion).
+  - **Full Regression**: 69/69 total tests passing across Phase 3, 4, 6, 7, and BYOK.
+- **Next Step**: Await user instructions for future enhancements.
+
 
 

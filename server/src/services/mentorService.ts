@@ -12,6 +12,7 @@ export interface AIMentorService {
  * 2. Deterministic, high-fidelity Pedagogical Rule Engine (Zero external API costs, testable, fast)
  */
 import { ProviderManager, ManagedProvider } from './providerManager.js';
+import { AIAdapterRegistry, ProviderCredentials } from './aiAdapters.js';
 
 export class DefaultAIMentorService implements AIMentorService {
   private apiKey?: string;
@@ -22,7 +23,14 @@ export class DefaultAIMentorService implements AIMentorService {
     this.providerManager = providerManager;
   }
 
-  async generateMentorTurn(request: MentorChatRequest): Promise<MentorResponse> {
+  async generateMentorTurn(request: MentorChatRequest, userCredentials?: ProviderCredentials): Promise<MentorResponse> {
+    // 1. If user-owned credentials are provided, route to the selected provider adapter
+    if (userCredentials) {
+      const adapter = AIAdapterRegistry.getAdapter(userCredentials.provider);
+      return await adapter.generateMentorTurn(request, userCredentials);
+    }
+
+    // 2. If provider manager with circuit breaker is active (e.g. system provider)
     if (this.providerManager) {
       const execution = await this.providerManager.executeWithFailover('openai', async (provider: ManagedProvider) => {
         if (provider.config.type === 'mock-pedagogical') {

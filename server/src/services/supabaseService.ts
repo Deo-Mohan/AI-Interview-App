@@ -47,6 +47,10 @@ export class SupabaseService {
     return this.adminInstance;
   }
 
+  public static getServiceClient(): SupabaseClient | null {
+    return this.getAdminClient();
+  }
+
   public static isConnected(): boolean {
     return Boolean(this.getClient());
   }
