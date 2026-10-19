@@ -100,6 +100,58 @@ app.post('/api/notes/generate', (req: Request, res: Response) => {
   }
 });
 
+import multer from 'multer';
+import { requireAuth, AuthenticatedRequest } from './middleware/auth.js';
+import { ResumeParserService } from './services/resumeParserService.js';
+import { SupabaseService } from './services/supabaseService.js';
+
+// Setup multer memory storage for PDF parsing
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+// Resume Upload & Safe Text Extraction Endpoint
+app.post('/api/resume/upload', requireAuth, upload.single('resume'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No resume file uploaded' });
+    }
+
+    const parseResult = await ResumeParserService.parseResumePdf(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
+
+    return res.json({
+      success: true,
+      resume: parseResult
+    });
+  } catch (err: any) {
+    console.error('[Error] Resume parsing error:', err);
+    return res.status(400).json({
+      error: 'Resume upload and parsing failed',
+      message: err.message
+    });
+  }
+});
+
+// User Preferences & Profile Endpoint
+app.get('/api/user/profile', requireAuth, (req: AuthenticatedRequest, res: Response) => {
+  res.json({
+    userId: req.user?.id,
+    email: req.user?.email,
+    cefrTargetLevel: 'B2',
+    speechRate: 'natural',
+    mentorTone: 'supportive',
+    dailyWordLimit: 5,
+    userTimezone: 'UTC',
+    speakingStreakDays: 14,
+    totalSpeakingMinutes: 285
+  });
+});
+
 // Full Pedagogical AI Mentor Endpoint (Phase 3)
 app.post('/api/conversation/mentor-turn', async (req: Request, res: Response) => {
   try {

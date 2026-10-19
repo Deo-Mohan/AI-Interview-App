@@ -102,22 +102,35 @@
 
 ## 8. Current Status & Phase Log
 - **Date**: 2026-10-19
-- **Current Phase**: **Phase 5 (Completed & Verified)**
+- **Current Phase**: **Phase 6 (Completed & Verified)**
 - **Completed Work**:
-  - **3D Human-Like Mentor Avatar Engine (`Avatar3DCanvas.tsx`)**:
-    - Built a procedural, fully licensed 3D humanoid mentor avatar ("Rachel") using Three.js with clean geometry (head, neck, shoulder bust, hair, glasses, eyelids, and responsive mouth).
-    - Modeled kinematics across all conversation lifecycle states:
-      - `idle`: Gentle organic rhythmic breathing and subtle head micro-sways.
-      - `listening`: Attentive posture with slight head tilt, alert eye contact, and focused pupil alignment.
-      - `processing`: Deliberative thinking state with subtle upward gaze and gradual head sway.
-      - `speaking`: Speech-driven mouth shape modulation (approximated audio visemes), head emphasis gestures, and shoulder breathing.
-      - `blinking`: Natural periodic blink cycles triggered every 3.8 seconds with smooth sinusoidal eyelid closure.
-  - **Performance, Disposal & Accessibility**:
-    - Strict GPU resource management: `renderer.dispose()`, `scene.clear()`, and event listener deregistration on unmount preventing WebGL memory leaks.
-    - Automatic detection and support for `prefers-reduced-motion: reduce`.
-    - User-accessible toggle for lightweight 2D avatar mode (instant switchable fallback for low-power mobile hardware or battery preservation).
-    - Unobtrusive layout: Placed alongside live transcript and real-time coaching rail without obstructing speech controls.
-  - **Verification**:
-    - Browser subagent verification completed (`phase5_verify_1792417088487.webp`).
-    - Production build compiles cleanly with zero TypeScript errors (`npm run build`).
-- **Next Step**: Await user approval to proceed to **Phase 6: Voice Provider Adapters (Whisper & ElevenLabs) & Cloud Speech Integration**.
+  - **Supabase PostgreSQL Database & Versioned Migrations**:
+    - Created versioned migration: `server/src/migrations/20261019_001_initial_schema.sql`.
+    - Implemented database schema covering:
+      - `profiles`: User preferences, target proficiency, coaching modes, and audio speed settings.
+      - `resumes`: Authenticated user resume text storage, extracted skills, target role, and job descriptions.
+      - `conversation_sessions`: Modes, target objectives, duration, and status tracking.
+      - `transcript_messages`: Complete conversation transcript turns, role assignment, and timestamps.
+      - `saved_notes`: AI-generated session summaries, grammar feedback, natural alternatives, and practice exercises.
+      - `recurring_error_patterns`: Tracked recurring mistakes with original/corrected samples, timestamps, and error categories.
+      - `user_vocabulary`: Saved words, CEFR levels, definitions, mastery levels (0-5), next review dates, and SRS tracking.
+      - `daily_assigned_words`: Deterministic daily vocabulary assignments per calendar date.
+    - Strict Row Level Security (RLS) policies configured on all tables enforcing `auth.uid() = user_id`.
+  - **Service Architecture & Secret Isolation**:
+    - `server/src/services/supabaseService.ts`: Strict separation of public anon client and server-only service-role client.
+    - Zero client exposure: Verified that `SUPABASE_SERVICE_ROLE_KEY` is never prefixed with `VITE_` or bundled in client builds.
+  - **Secure Authenticated Resume Workflow (`resumeParserService.ts`)**:
+    - Backend PDF file upload endpoint (`/api/resume/upload`) with Multer memory storage.
+    - Enforced 5MB file size limit and MIME-type validation (`application/pdf`).
+    - Robust PDF text extraction using `pdf-parse`.
+    - Adversarial prompt injection defense: Neutralizes attempts to hijack system prompts (e.g. `ignore all instructions`, `System:`, `You are now a...`).
+    - Respects data deletion and stores only verified resume metadata and extracted technical skills.
+  - **Personalization & Error History**:
+    - Tracking recurring grammatical and vocabulary errors with timestamps and example sentences.
+    - Support for generating revision exercises from past sessions.
+    - Spaced Repetition (SRS) review scheduling based on user-approved proficiency.
+  - **Testing & Verification**:
+    - Automated unit tests in `server/src/test-phase6.ts` verifying PDF size rejection, MIME validation, prompt injection defense, and RLS schema policy compliance (13/13 passing).
+    - Prior regressions verified: Phase 3 mode tests (14/14 passing) and Phase 4 notes/vocabulary tests (16/16 passing).
+- **Next Step**: Await user instructions to proceed to **Phase 7: Advanced Provider Adapters (Cloud Whisper STT & ElevenLabs TTS)**.
+
