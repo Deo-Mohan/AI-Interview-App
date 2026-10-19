@@ -12,7 +12,7 @@ interface UseConversationEngineProps {
 export function useConversationEngine({
   modeId,
   mode,
-  initialWelcomeText = "Hello Krish! I'm Rachel, your English communication mentor. I'm listening closely and ready whenever you'd like to begin.",
+  initialWelcomeText = "Hello! I'm Krish AI, your English communication mentor. I'm listening closely and ready whenever you'd like to begin.",
   onSessionEnded,
   onSessionEnd,
 }: UseConversationEngineProps) {

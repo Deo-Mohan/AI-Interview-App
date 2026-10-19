@@ -32,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileDrawer }) => {
       case '/': return { title: 'Dashboard', subtitle: 'Practice analytics, speaking streak, and curriculum roadmap' };
       case '/modes': return { title: 'Practice Modes', subtitle: 'Select an AI-guided simulation environment' };
       case '/conversation-setup': return { title: 'Session Setup', subtitle: 'Configure role, scenario, and coaching intensity' };
-      case '/conversation': return { title: 'Live Voice Studio', subtitle: 'Real-time conversation with Rachel, 3D mentor' };
+      case '/conversation': return { title: 'Live Voice Studio', subtitle: 'Real-time conversation with Krish AI, 3D mentor' };
       case '/session-complete': return { title: 'Session Recap', subtitle: 'Performance analytics, CEFR score, and lesson notes' };
       case '/notes': return { title: 'Lesson Notes & Revisions', subtitle: 'Structured post-session grammar and expression notes' };
       case '/vocabulary': return { title: 'Daily Vocabulary Lab', subtitle: 'Contextual dictionary, pronunciation, and spaced repetition' };
@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileDrawer }) => {
       case '/interview-setup': return { title: 'Resume Mock Interview', subtitle: 'Contextual technical and behavioural career rehearsal' };
       case '/progress': return { title: 'Speaking Fluency Analytics', subtitle: 'CEFR progression, habits tracking, and error trends' };
       case '/settings': return { title: 'Settings & AI Providers', subtitle: 'BYOK API keys, AES-256 encryption, and audio preferences' };
-      default: return { title: 'Rachel AI Coach', subtitle: 'Natural spoken English practice' };
+      default: return { title: 'Krish AI Coach', subtitle: 'Natural spoken English practice' };
     }
   };
 
@@ -60,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileDrawer }) => {
 
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-slate-400 font-bold hidden sm:inline-block">Rachel AI</span>
+            <span className="text-[11px] font-mono text-slate-400 font-bold hidden sm:inline-block">Krish AI</span>
             <ChevronRight className="size-3 text-slate-300 hidden sm:inline-block" />
             <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
               {pageInfo.title}
@@ -146,7 +146,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
                   <Sparkles className="size-4" />
                 </div>
                 <div>
-                  <span className="text-sm font-extrabold text-slate-900 block leading-tight">Rachel AI</span>
+                  <span className="text-sm font-extrabold text-slate-900 block leading-tight">Krish AI</span>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">English Coach</span>
                 </div>
               </div>

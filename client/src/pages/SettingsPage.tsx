@@ -218,7 +218,7 @@ export const SettingsPage: React.FC = () => {
                       Key: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700">{activeCredential.metadata.keyLastFour}</code> ({activeCredential.metadata.persistenceType})
                     </span>
                   ) : (
-                    'Please configure an AI model below to practice voice sessions with Rachel.'
+                    'Please configure an AI model below to practice voice sessions with Krish AI.'
                   )}
                 </p>
               </div>

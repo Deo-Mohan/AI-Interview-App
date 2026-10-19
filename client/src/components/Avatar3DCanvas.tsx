@@ -360,7 +360,7 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
           )}
         </div>
 
-        <span className="text-sm font-bold text-slate-200">Rachel (AI English Mentor)</span>
+        <span className="text-sm font-bold text-slate-200">Krish AI (AI English Mentor)</span>
         <span className="text-xs text-slate-400 capitalize mt-0.5">
           {state.replace('_', ' ')} • 2D Lightweight Mode
         </span>

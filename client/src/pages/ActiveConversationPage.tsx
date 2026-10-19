@@ -110,7 +110,7 @@ export const ActiveConversationPage: React.FC = () => {
             <div>
               <span className="text-xs font-bold text-amber-950 block">No AI Provider Configured</span>
               <span className="text-[11px] text-amber-800">
-                To enable live speech responses from Rachel, add your personal Gemini, OpenAI, or Anthropic API key.
+                To enable live speech responses from Krish AI, add your personal Gemini, OpenAI, or Anthropic API key.
               </span>
             </div>
           </div>
@@ -194,7 +194,7 @@ export const ActiveConversationPage: React.FC = () => {
                 size="sm" 
               />
               <span className="text-xs font-extrabold uppercase tracking-wider text-slate-200 font-mono">
-                Rachel: {state.replace('_', ' ')}
+                Krish AI: {state.replace('_', ' ')}
               </span>
             </div>
 
@@ -220,7 +220,7 @@ export const ActiveConversationPage: React.FC = () => {
               <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <span className="text-sm font-extrabold text-slate-900 block tracking-tight">Ready to start?</span>
-                  <span className="text-xs text-slate-500 font-medium">Click below to allow microphone access and connect to Rachel</span>
+                  <span className="text-xs text-slate-500 font-medium">Click below to allow microphone access and connect to Krish AI</span>
                 </div>
                 <Button
                   variant="tactile"
@@ -251,7 +251,7 @@ export const ActiveConversationPage: React.FC = () => {
                       {isMuted ? 'Microphone Muted' : 'Microphone Live'}
                     </span>
                     <span className="text-[11px] text-slate-400 font-medium">
-                      {isMuted ? 'Rachel is not listening' : 'Speak naturally anytime'}
+                      {isMuted ? 'Krish AI is not listening' : 'Speak naturally anytime'}
                     </span>
                   </div>
                 </div>
@@ -313,7 +313,7 @@ export const ActiveConversationPage: React.FC = () => {
                   <Bot className="size-8 mb-2 opacity-50" />
                   <span className="text-xs font-semibold">Click "Start Conversation" to begin your practice</span>
                   <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
-                    Rachel will greet you and guide the conversation according to your chosen practice mode.
+                    Krish AI will greet you and guide the conversation according to your chosen practice mode.
                   </p>
                 </div>
               )}
@@ -329,7 +329,7 @@ export const ActiveConversationPage: React.FC = () => {
                   >
                     <div className="flex items-center gap-1.5 mb-1 px-1">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                        {item.sender === 'user' ? 'You' : 'Rachel (AI Mentor)'}
+                        {item.sender === 'user' ? 'You' : 'Krish AI (Mentor)'}
                       </span>
                       <span className="font-mono text-[9px] text-slate-400">{item.timestamp}</span>
                     </div>

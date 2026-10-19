@@ -184,7 +184,7 @@ Typography: Plus Jakarta Sans for headings, Inter for body, Space Mono / JetBrai
 Immersive AI English speaking conversation studio. 
 Two-column responsive layout (7 cols avatar / 5 cols coaching rail):
 - 3D Avatar Stage: Dark cinematic studio viewport (#0B0F19) with 3-point studio lighting framing an articulate human AI mentor.
-- State Beacon & Audio Waveform: Dynamic top-left status pill ("Rachel: Listening" with emerald pulse beacon) and bottom multi-bar audio spectrum visualizer reacting to human speech.
+- State Beacon & Audio Waveform: Dynamic top-left status pill ("Krish AI: Listening" with emerald pulse beacon) and bottom multi-bar audio spectrum visualizer reacting to human speech.
 - Voice Control Dock: Tactile floating control island with Mic toggle, Interrupt speech button, Mute audio, and End Session button.
 - Live Dual Transcript Rail: Real-time speech bubbles clearly differentiating learner speech and AI mentor replies.
 - Real-Time Coaching Sidebar: Expandable grammar and vocabulary tips with instant native alternative suggestions.

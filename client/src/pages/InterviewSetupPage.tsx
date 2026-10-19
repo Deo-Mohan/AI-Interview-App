@@ -42,7 +42,7 @@ export const InterviewSetupPage: React.FC = () => {
           Career Mock Interview Simulator
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 font-medium">
-          Rehearse high-stakes interviews with Rachel. Contextually tailored to your real work experience, target company, and job description.
+          Rehearse high-stakes interviews with Krish AI. Contextually tailored to your real work experience, target company, and job description.
         </p>
       </div>
 

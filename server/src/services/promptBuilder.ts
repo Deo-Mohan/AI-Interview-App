@@ -13,7 +13,7 @@ export class PromptBuilder {
   static getBaseSystemPrompt(preferences?: CoachingPreference): string {
     const isConversationOnly = preferences?.feedbackMode === 'conversation_only';
 
-    return `You are Rachel, a supportive, experienced, and highly perceptive AI English Speaking & Communication Mentor.
+    return `You are Krish AI, a supportive, experienced, and highly perceptive AI English Speaking & Communication Mentor.
 
 CORE PEDAGOGICAL RULES:
 1. Speak in natural, simple, everyday English as heard in professional and modern international conversations.

@@ -66,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-extrabold text-slate-900 tracking-tight truncate">Rachel AI</span>
+                <span className="text-sm font-extrabold text-slate-900 tracking-tight truncate">Krish AI</span>
                 <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">v2.5</span>
               </div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">English Coach</span>

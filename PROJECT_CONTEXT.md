@@ -177,7 +177,7 @@
    - Paste your secret key and click **Test Connection** to verify API validity and network round-trip latency.
    - Choose your storage preference (Session Only vs Server-Encrypted Persistent) and save.
 3. **Practice**:
-   - Navigate to `/conversation` or choose any mode in `/modes` to engage in real-time voice practice with Rachel.
+   - Navigate to `/conversation` or choose any mode in `/modes` to engage in real-time voice practice with Krish AI.
 
 ---
 

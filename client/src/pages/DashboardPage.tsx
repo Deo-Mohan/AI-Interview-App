@@ -86,7 +86,7 @@ export const DashboardPage: React.FC = () => {
             </h2>
 
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">
-              Practice spontaneous conversations with Rachel, your 3D AI mentor. Rachel listens actively, tracks verb tenses, and offers natural native alternatives in real time.
+              Practice spontaneous conversations with Krish AI, your 3D AI mentor. Krish AI listens actively, tracks verb tenses, and offers natural native alternatives in real time.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-slate-500 font-medium">
