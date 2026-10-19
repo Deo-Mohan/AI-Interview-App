@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { Bot, AlertCircle, Eye, EyeOff, Sparkles, RefreshCw, ExternalLink } from 'lucide-react';
 import { ConversationState } from '../types/engine';
 
@@ -78,11 +79,14 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
     let fingerBones: THREE.Object3D[] = [];
     let morphMeshes: TargetMesh[] = [];
 
-    // Helper to safely set morph target weight across all meshes
+    // Helper to safely set morph target weight across all meshes (supports raw and viseme_ prefixes)
     const setMorphWeight = (name: string, weight: number) => {
       const clamped = Math.max(0, Math.min(1, weight));
       for (const item of morphMeshes) {
-        const idx = item.dict[name];
+        let idx = item.dict[name];
+        if (idx === undefined && !name.startsWith('viseme_')) {
+          idx = item.dict['viseme_' + name];
+        }
         if (idx !== undefined && item.influences) {
           item.influences[idx] = clamped;
         }
@@ -150,8 +154,8 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
       handBounceLight.position.set(0, 0.5, 1.5);
       scene.add(handBounceLight);
 
-      // 5. Load GLB Model
       const loader = new GLTFLoader();
+      loader.setMeshoptDecoder(MeshoptDecoder);
       loader.load(
         '/models/english-coach.glb',
         (gltf) => {
@@ -167,17 +171,17 @@ export const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
               child.userData.baseQuaternion = child.quaternion.clone();
 
               const name = (child.name || '').toLowerCase();
-              if (name === 'head') headBone = child;
-              if (name === 'neck' || name === 'neck1') neckBone = child;
-              if (name === 'spine' || name === 'spine1' || name === 'spine2') spineBone = child;
-              if (name === 'leftshoulder') leftShoulder = child;
-              if (name === 'rightshoulder') rightShoulder = child;
-              if (name === 'leftarm') leftArm = child;
-              if (name === 'rightarm') rightArm = child;
-              if (name === 'leftforearm') leftForeArm = child;
-              if (name === 'rightforearm') rightForeArm = child;
-              if (name === 'lefthand') leftHand = child;
-              if (name === 'righthand') rightHand = child;
+              if (name === 'head' || name.includes('head')) headBone = child;
+              if (name === 'neck' || name.includes('neck')) neckBone = child;
+              if (name === 'spine' || name.includes('spine')) spineBone = child;
+              if (name === 'leftshoulder' || name.includes('l_clavicle')) leftShoulder = child;
+              if (name === 'rightshoulder' || name.includes('r_clavicle')) rightShoulder = child;
+              if (name === 'leftarm' || name.includes('l_upperarm')) leftArm = child;
+              if (name === 'rightarm' || name.includes('r_upperarm')) rightArm = child;
+              if (name === 'leftforearm' || name.includes('l_forearm')) leftForeArm = child;
+              if (name === 'rightforearm' || name.includes('r_forearm')) rightForeArm = child;
+              if (name === 'lefthand' || name.includes('l_hand')) leftHand = child;
+              if (name === 'righthand' || name.includes('r_hand')) rightHand = child;
 
               // Finger knuckles for natural curl
               if (

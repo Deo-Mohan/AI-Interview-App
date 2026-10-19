@@ -57,7 +57,7 @@ export const ActiveConversationPage: React.FC = () => {
       });
   }, []);
 
-  const [avatarEngine, setAvatarEngine] = useState<'studio' | 'sdk'>('studio');
+  const [avatarEngine, setAvatarEngine] = useState<'studio' | 'sdk'>('sdk');
   const [showReportModal, setShowReportModal] = useState<boolean>(false);
 
   const {

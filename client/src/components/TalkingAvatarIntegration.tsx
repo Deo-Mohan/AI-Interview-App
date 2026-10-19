@@ -60,7 +60,6 @@ export const TalkingAvatarIntegration: React.FC<TalkingAvatarIntegrationProps> =
         container: containerRef.current,
         avatarUrl: '/models/english-coach.glb',
         modelUrl: '/models/viseme-model.bin',
-        morphTargets: SKY_MORPH_TARGET_MAP,
         onError: (err: Error) => {
           if (!isDisposed) {
             console.warn('[TalkingAvatarSDK] Error:', err);

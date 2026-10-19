@@ -4,18 +4,28 @@ This application incorporates third-party open-source assets and 3D models. The 
 
 ---
 
-## 1. 3D Avatar: Sky (VTubeMe)
+## 1. 3D Avatar Models: Talking Avatar Dev (Realistic Female & Male)
 
-- **Asset**: Sky — Free VRM / GLB 3D Avatar
+- **Asset**: Realistic 3D Human Avatars (Female & Male GLB with 67 morph targets, full ARKit blendshapes & Oculus visemes)
+- **Source**: [talking-avatar.dev](https://talking-avatar.dev/free-talking-avatar) / [Demo](https://talking-avatar.dev/demo/3d-avatar)
+- **Local File Paths**: 
+  - `client/public/models/realistic-female.glb`
+  - `client/public/models/realistic-male.glb`
+  - `client/public/models/english-coach.glb` (Realistic female avatar default)
+- **License**: MIT / Free WebGL Avatar Distribution
+- **Features**: Meshopt compressed, 67 blendshapes including 15 Oculus visemes (`viseme_aa`, `viseme_PP`, etc.), humanoid Bip01 rig.
+
+---
+
+## 2. Legacy Avatar: Sky (VTubeMe)
+
+- **Asset**: Sky — Free VRM / GLB 3D Avatar (Stylized)
 - **Creator / Source**: [VTubeMe](https://vtubeme.com) ([https://vtubeme.com/free-vrm-avatars/sky](https://vtubeme.com/free-vrm-avatars/sky))
-- **Local File Path**: `client/public/models/english-coach.glb`
 - **License**: Creative Commons Attribution 4.0 International ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))
-
-### Attribution Notice:
+- **Attribution Notice**:
 ```
 "Sky" 3D Avatar by VTubeMe (https://vtubeme.com/free-vrm-avatars/sky)
 is licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
-Modifications made: Exported to GLB for real-time WebGL rendering, custom bone kinematics, and speech-driven viseme modulation.
 ```
 
 ---
