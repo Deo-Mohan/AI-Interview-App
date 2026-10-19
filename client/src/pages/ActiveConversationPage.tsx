@@ -18,6 +18,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
+import { Avatar3DCanvas } from '../components/Avatar3DCanvas';
 import { useConversationEngine } from '../hooks/useConversationEngine';
 
 export const ActiveConversationPage: React.FC = () => {
@@ -137,9 +138,9 @@ export const ActiveConversationPage: React.FC = () => {
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
         {/* Left/Center: 3D Avatar Stage & Audio Controls */}
         <div className="lg:col-span-7 flex flex-col gap-4 min-h-0">
-          <Card variant="default" className="flex-1 relative flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 p-6 text-white min-h-[300px]">
+          <Card variant="default" className="flex-1 relative flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 p-2 sm:p-4 text-white min-h-[320px]">
             {/* Top State Badge */}
-            <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+            <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-slate-900/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-slate-700">
               <span className={`size-2.5 rounded-full ${
                 state === 'listening' ? 'bg-emerald-400 animate-ping' :
                 state === 'speaking' ? 'bg-blue-400 animate-pulse' :
@@ -150,32 +151,11 @@ export const ActiveConversationPage: React.FC = () => {
               </span>
             </div>
 
-            {/* Avatar Center Node */}
-            <div className="relative flex flex-col items-center justify-center space-y-4">
-              <div className={`relative size-36 sm:size-44 rounded-full bg-slate-800/80 border-4 transition-all duration-300 flex items-center justify-center shadow-2xl ${
-                state === 'speaking' ? 'border-blue-500/80 scale-105' :
-                state === 'listening' ? 'border-emerald-500/80' : 'border-slate-700'
-              }`}>
-                {state === 'speaking' && (
-                  <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-40"></div>
-                )}
-                {state === 'listening' && (
-                  <div className="absolute inset-0 rounded-full border-2 border-emerald-400 animate-pulse opacity-30"></div>
-                )}
-                <Bot className={`size-20 transition-colors ${
-                  state === 'speaking' ? 'text-blue-400' :
-                  state === 'listening' ? 'text-emerald-400' : 'text-slate-400'
-                }`} />
-              </div>
-
-              <div className="text-center">
-                <span className="text-sm font-bold text-slate-200 block">AI English Mentor</span>
-                <span className="text-xs text-slate-400 font-medium">Rachel (Patient & Supportive)</span>
-              </div>
-            </div>
+            {/* 3D Human-like Avatar Canvas */}
+            <Avatar3DCanvas state={state} className="w-full h-full" />
 
             {/* Simulated Audio Frequency Visualizer */}
-            <div className="absolute bottom-6 left-6 right-6 flex items-center justify-center gap-1.5 h-10">
+            <div className="absolute bottom-4 left-6 right-6 flex items-center justify-center gap-1.5 h-8 pointer-events-none">
               {[20, 45, 70, 35, 90, 100, 65, 50, 30, 80, 95, 40, 25, 60, 85, 30].map((h, i) => (
                 <div
                   key={i}

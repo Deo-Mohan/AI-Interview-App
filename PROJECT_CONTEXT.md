@@ -102,23 +102,22 @@
 
 ## 8. Current Status & Phase Log
 - **Date**: 2026-10-19
-- **Current Phase**: **Phase 4 (Completed & Verified)**
+- **Current Phase**: **Phase 5 (Completed & Verified)**
 - **Completed Work**:
-  - **A. Generate Notes & Export System**:
-    - Created `NotesGeneratorService` in `server/src/services/notesGeneratorService.ts` to transform finalized session transcripts into structured lesson notes.
-    - Notes faithfully extract session summary, speaking speed (WPM), CEFR rating, grammar corrections with linguistic rule explanations, natural alternatives, vocabulary highlights, and structured exercises.
-    - Implemented client-side formatted PDF export via `jspdf` (`client/src/services/pdfExporter.ts`) matching the EventLooped visual design.
-    - Implemented Markdown (`.md`) export and local persistence to prevent duplicate records upon regeneration.
-  - **B. Dictionary Integration & Fallbacks**:
-    - Built `FreeDictionaryApiAdapter` in `server/src/services/dictionaryAdapter.ts` supporting definition retrieval, IPA phonetics, parts of speech, and audio pronunciation links.
-    - Added synthetic AI-generated sentence generator ensuring every word includes 3 high-impact context examples even when external APIs lack examples.
-    - Added fallback database for high-yield vocabulary.
-  - **C. Daily Vocabulary & Timezone Boundaries**:
-    - Built `DailyVocabularyService` supporting any positive daily limit (1, 2, 5, 6, 10+ words) across beginner, intermediate, and advanced levels.
-    - Supports specialized categories: Everyday English, Office English, Interview Vocabulary, and Mixed.
-    - Daily assignments remain completely stable across page refreshes using timezone date hashing (`Intl.DateTimeFormat`).
-    - Excludes previously assigned or mastered words to prevent duplicate assignments.
-  - **Testing & Verification**:
-    - Automated unit test suite `server/src/test-phase4.ts` passing 16/16 tests covering dictionary lookups, synthetic fallbacks, arbitrary daily limits, duplicate exclusion, and notes generation.
-    - Client and server production builds pass cleanly (`npm run build`).
-- **Next Step**: Await user approval to proceed to **Phase 5: 3D Human-like Avatar Engine (Three.js / React Three Fiber) & Web Audio Frequency Visualizer**.
+  - **3D Human-Like Mentor Avatar Engine (`Avatar3DCanvas.tsx`)**:
+    - Built a procedural, fully licensed 3D humanoid mentor avatar ("Rachel") using Three.js with clean geometry (head, neck, shoulder bust, hair, glasses, eyelids, and responsive mouth).
+    - Modeled kinematics across all conversation lifecycle states:
+      - `idle`: Gentle organic rhythmic breathing and subtle head micro-sways.
+      - `listening`: Attentive posture with slight head tilt, alert eye contact, and focused pupil alignment.
+      - `processing`: Deliberative thinking state with subtle upward gaze and gradual head sway.
+      - `speaking`: Speech-driven mouth shape modulation (approximated audio visemes), head emphasis gestures, and shoulder breathing.
+      - `blinking`: Natural periodic blink cycles triggered every 3.8 seconds with smooth sinusoidal eyelid closure.
+  - **Performance, Disposal & Accessibility**:
+    - Strict GPU resource management: `renderer.dispose()`, `scene.clear()`, and event listener deregistration on unmount preventing WebGL memory leaks.
+    - Automatic detection and support for `prefers-reduced-motion: reduce`.
+    - User-accessible toggle for lightweight 2D avatar mode (instant switchable fallback for low-power mobile hardware or battery preservation).
+    - Unobtrusive layout: Placed alongside live transcript and real-time coaching rail without obstructing speech controls.
+  - **Verification**:
+    - Browser subagent verification completed (`phase5_verify_1792417088487.webp`).
+    - Production build compiles cleanly with zero TypeScript errors (`npm run build`).
+- **Next Step**: Await user approval to proceed to **Phase 6: Voice Provider Adapters (Whisper & ElevenLabs) & Cloud Speech Integration**.
